@@ -2,4 +2,4 @@
 
 This is our documentation file.
 
-When adding to images in this README, store the images inside `./public` and reference them by filepath (e.g. `./public/python_logo.jpg`).
+When adding to images in this README, store the images inside `./public` and reference them by filepath (e.g. `./public/python_logo.png`).
