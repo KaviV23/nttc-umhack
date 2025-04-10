@@ -1,0 +1,132 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: #f4f7f6;
+}
+
+/* Main Layout Container using Flexbox */
+.app-layout {
+  display: flex;
+  min-height: 100vh; /* Ensure layout takes full viewport height */
+}
+
+/* Left Sidebar Styles */
+.left-sidebar {
+  width: 220px; /* Fixed width */
+  background-color: #34495e; /* Dark blue/grey */
+  color: #ecf0f1; /* Light grey text */
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+}
+
+.left-sidebar h2 {
+  margin-top: 0;
+  color: #ffffff;
+  border-bottom: 1px solid #4a627a;
+  padding-bottom: 10px;
+}
+
+.left-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0 0;
+}
+
+.left-sidebar li {
+  margin-bottom: 10px;
+}
+
+.left-sidebar a {
+  text-decoration: none;
+  color: #bdc3c7; /* Lighter grey for links */
+  display: block;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.left-sidebar a:hover {
+  background-color: #4a627a; /* Slightly darker background on hover */
+  color: #ffffff;
+}
+
+/* Active link style (React Router adds 'active' class to NavLink) */
+.left-sidebar a.active {
+  background-color: #2980b9; /* Blue for active link */
+  color: #ffffff;
+  font-weight: bold;
+}
+
+/* Main Content Area Styles */
+.main-content {
+  flex-grow: 1; /* Takes up remaining horizontal space */
+  padding: 30px;
+  background-color: #ffffff;
+  overflow-y: auto; /* Add scroll if content overflows vertically */
+}
+
+/* Right Sidebar Styles */
+.right-sidebar {
+  width: 250px; /* Fixed width */
+  background-color: #e9ecef; /* Light grey background */
+  color: #343a40; /* Dark text */
+  padding: 20px;
+  border-left: 1px solid #dee2e6; /* Subtle border */
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+  transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease; /* Smooth transition */
+  position: relative; /* Needed for absolute positioning of button if desired */
+  overflow: hidden; /* Hide content when collapsed */
+}
+
+.right-sidebar.collapsed {
+  width: 30px; /* Width when collapsed (just enough for the button) */
+  padding: 20px 0; /* Adjust padding */
+  cursor: pointer;
+  overflow: hidden; /* Ensure content is hidden */
+}
+
+.right-sidebar-content {
+   opacity: 1;
+   transition: opacity 0.2s ease 0.1s; /* Delay opacity transition */
+}
+
+.right-sidebar.collapsed .right-sidebar-content {
+  opacity: 0;
+  height: 0;
+  pointer-events: none; /* Prevent interaction with hidden content */
+}
+
+
+/* Toggle Button Styles */
+.toggle-button {
+  position: absolute;
+  top: 10px;
+  /* Position inside the sidebar or on the edge */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.8em;
+  white-space: nowrap; /* Prevent text wrapping */
+  z-index: 10; /* Ensure button is clickable */
+}
+
+.right-sidebar.collapsed .toggle-button {
+   left: 50%; /* Center in collapsed state */
+   transform: translateX(-50%);
+}
+
+.toggle-button:hover {
+  background-color: #5a6268;
+}
+
+/* Optional: Add some styles to App.css or index.css for global elements */
+/* src/styles/App.css (example) */
+h1, h2, h3 {
+  color: #333;
+}
