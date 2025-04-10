@@ -1,12 +1,13 @@
-import React from 'react';
+import { Paper, Text, Space, Title } from '@mantine/core';
 
 function HomePage() {
   return (
-    <div>
-      <h1>Home Page</h1>
-      <p>Welcome to the application!</p>
-      <p>This is the main content area.</p>
-    </div>
+    <Paper shadow="xs" p="xl" radius="md">
+      <Title order={1}>Home Page</Title>
+      <Space h="md" /> {/* Add vertical space */}
+      <Text>Welcome to the application!</Text>
+      <Text c="dimmed" size="sm">This is the main content area, now using Mantine components.</Text>
+    </Paper>
   );
 }
 
