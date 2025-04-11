@@ -1,6 +1,7 @@
 import { Outlet, NavLink as RouterNavLink } from 'react-router-dom';
-import { AppShell, Burger, Group, NavLink, Text, Button, Title, Box } from '@mantine/core';
+import { AppShell, Burger, Group, NavLink, Text, Button, Title, Box, useMantineTheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks'; // Hook for toggle state
+import ChatbotInterface from './ChatbotInterface';
 
 // Define navigation links data
 const navLinks = [
@@ -15,6 +16,7 @@ function Layout() {
   const [mobileNavOpened, { toggle: toggleMobileNav }] = useDisclosure();
   // State for the right collapsible sidebar (Aside)
   const [asideOpened, { toggle: toggleAside }] = useDisclosure(true); // Default to open
+  const theme = useMantineTheme();
 
   // Generate NavLink components for the left sidebar
   const mainLinks = navLinks.map((link) => (
@@ -42,7 +44,7 @@ function Layout() {
         collapsed: { mobile: !mobileNavOpened }, // Control visibility on mobile
       }}
       aside={{
-        width: 280, // Width of the right sidebar
+        width: 500, // Width of the right sidebar
         breakpoint: "md", // Hide below 'md' viewport width (optional, can always show)
         collapsed: { desktop: !asideOpened, mobile: true }, // Control visibility based on state
       }}
@@ -77,40 +79,19 @@ function Layout() {
       </AppShell.Navbar>
 
       {/* Right Sidebar (Aside) */}
-      <AppShell.Aside p="md">
-        <Group justify="space-between" mb="md">
-          <Text fw={500}>Details</Text>
-        </Group>
-
+      <AppShell.Aside >
         {/* Content only shows when aside is open */}
         {asideOpened && (
-          <Box>
-            <Text size="sm" c="dimmed">
-              This is the collapsible right sidebar.
-            </Text>
-            <Text mt="sm">Add extra information, context, or tools here.</Text>
-            {/* Example content */}
-            <Button mt="lg" fullWidth variant="outline">
-              Some Action
-            </Button>
+          <Box h="93%">
+            <Group
+              justify="space-between"
+              p="md"
+              style={{ borderBottom: `1px solid ${theme.colors.gray[3]}` }}
+            >
+              <Title order={2}>AI Assistant</Title>
+            </Group>
+            <ChatbotInterface />
           </Box>
-        )}
-        {/* Show a small button/icon even when collapsed to reopen */}
-        {!asideOpened && (
-          <Button
-            onClick={toggleAside}
-            size="xs"
-            variant="light"
-            style={{
-              writingMode: "vertical-rl",
-              position: "absolute",
-              top: "50%",
-              left: "5px",
-              transform: "translateY(-50%)",
-            }} // Vertical button
-          >
-            Expand
-          </Button>
         )}
       </AppShell.Aside>
 
