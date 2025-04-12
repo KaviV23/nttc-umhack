@@ -108,7 +108,7 @@ fastapi dev .\main.py --port 9000
 
   <p><h3>🎬 2. Plan Food Staging</h3>
   "Turn those forecasts into action. Use predictive insights to plan food staging, tap into warehousing APIs, and boost your delivery range and customer reach."
-  <video controls muted src="https://github.com/user-attachments/assets/c0bb82cd-dcf1-49d9-9cb0-dc5faf20d845"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/820e6f4c-615d-48a6-b58a-4bd3359150fd"></video></p>
 
   <p><h3>🎬 3. Identify Inactive Customers</h3>
   "Discover who hasn’t come back. Dive into backend data to find customers who’ve stopped reordering—and start planning your win-back strategy."
