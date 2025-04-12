@@ -5,9 +5,8 @@ import ChatbotInterface from './ChatbotInterface';
 
 // Define navigation links data
 const navLinks = [
-  { path: '/', label: 'Home', exact: true },
-  { path: '/about', label: 'About' },
-  { path: '/settings', label: 'Settings' },
+  { path: '/', label: 'Dashboard', exact: true },
+  { path: '/customers', label: 'Customers' },
   // Add more links here
 ];
 
@@ -15,7 +14,7 @@ function Layout() {
   // State for mobile navigation burger menu
   const [mobileNavOpened, { toggle: toggleMobileNav }] = useDisclosure();
   // State for the right collapsible sidebar (Aside)
-  const [asideOpened, { toggle: toggleAside }] = useDisclosure(true); // Default to open
+  const [asideOpened, { toggle: toggleAside }] = useDisclosure(false); // Default to closed
   const theme = useMantineTheme();
 
   // Generate NavLink components for the left sidebar
@@ -37,6 +36,7 @@ function Layout() {
   return (
     <AppShell
       padding="md"
+      w="1400px"
       header={{ height: 60 }}
       navbar={{
         width: 250, // Width of the left sidebar
@@ -59,7 +59,7 @@ function Layout() {
               hiddenFrom="sm" // Hide burger on larger screens
               size="sm"
             />
-            <Title order={3}>My App</Title>
+            <Title order={3}>Grab Merchant</Title>
           </Box>
           <Box>
             <Button onClick={toggleAside} variant="light">
@@ -96,7 +96,7 @@ function Layout() {
       </AppShell.Aside>
 
       {/* Main Content Area */}
-      <AppShell.Main>
+      <AppShell.Main >
         {/* React Router outlet renders the current page here */}
         <Outlet />
       </AppShell.Main>
