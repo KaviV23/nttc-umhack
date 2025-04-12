@@ -1,14 +1,12 @@
 <p align="center">
   <img src="public/grabcastnback.png" alt="Project Logo" width="450" height="650"/>
 </p>
-
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/frontend-react%20%7C%20mantine-blue?style=for-the-badge" /></a>
   <a href="#"><img src="https://img.shields.io/badge/backend-fastapi%20%7C%20ollama-green?style=for-the-badge" /></a>
   <a href="#"><img src="https://img.shields.io/badge/storage-postgresql%20%7C%20csv-yellow?style=for-the-badge" /></a>
   <a href="#"><img src="https://img.shields.io/badge/infra-docker%20%7C%20nginx-lightgrey?style=for-the-badge" /></a>
 </p>
-
 <p align="center">
   Run LLM apps locally using FastAPI and Ollama. Designed for hackathon speed, production stability, and AI-first development.
 </p>
