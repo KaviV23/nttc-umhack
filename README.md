@@ -22,6 +22,12 @@ This repository contains our project submission for the University of Malaya Hac
 
 ---
 
+## 📺 Commercial Video
+
+<video controls src="https://github.com/user-attachments/assets/85ec0d68-355d-49d9-b0b7-d9b2d5692548"></video>
+
+---
+
 ## 🚀 Getting Started
 
 ### Front-End Setup
