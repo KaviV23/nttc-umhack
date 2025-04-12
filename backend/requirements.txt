@@ -1,1 +1,1 @@
-fastapi[standard]
+fastapi[standard]annotated-types    0.7.0
