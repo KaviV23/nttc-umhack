@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Stack,
-    // TextInput, // Or Textarea for multiline
     Textarea,
     Button,
     ScrollArea,
@@ -9,28 +8,35 @@ import {
     Text,
     Loader,
     Group,
-    // ActionIcon, // Alternative to Button for send icon
     useMantineTheme,
+    Divider, // Import Divider
 } from '@mantine/core';
-// import { IconSend } from '@tabler/icons-react';
 
 // Define the structure for a message
 interface Message {
     sender: 'user' | 'bot';
     text: string;
+    // Optional: Add actions specifically to bot messages if needed,
+    // but managing separately in state might be cleaner.
+    // suggested_actions?: string[];
+}
+
+// Define the expected API response structure
+interface ApiResponse {
+    response: string;
+    suggested_actions?: string[]; // Make it optional
 }
 
 function ChatbotInterface() {
     const theme = useMantineTheme();
-    const [messages, setMessages] = useState<Message[]>([]); // Array to hold chat messages
-    const [currentInput, setCurrentInput] = useState(''); // User's current input
-    const [isLoading, setIsLoading] = useState(false); // Loading state for bot response
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [currentInput, setCurrentInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [suggestedActions, setSuggestedActions] = useState<string[]>([]); // <-- New state for actions
 
-    const viewport = useRef<HTMLDivElement>(null); // Ref for scrolling
+    const viewport = useRef<HTMLDivElement>(null);
 
-    // Function to scroll to the bottom of the chat
     const scrollToBottom = () => {
-        // Timeout ensures this runs after the DOM update
         setTimeout(() => {
             viewport.current?.scrollTo({
                 top: viewport.current.scrollHeight,
@@ -39,159 +45,144 @@ function ChatbotInterface() {
         }, 0);
     };
 
-    // Scroll to bottom whenever messages change
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
-    // Function to handle sending a message
     const handleSendMessage = async () => {
         const trimmedInput = currentInput.trim();
-        if (!trimmedInput || isLoading) return; // Don't send empty messages or while loading
+        if (!trimmedInput || isLoading) return;
 
         const userMessage: Message = { sender: 'user', text: trimmedInput };
 
-        // Update UI immediately with user message
         setMessages((prevMessages) => [...prevMessages, userMessage]);
-        setCurrentInput(''); // Clear input field
-        setIsLoading(true); // Show loading indicator
+        setCurrentInput('');
+        setIsLoading(true);
+        setSuggestedActions([]); // <-- Clear previous actions when user sends message
 
-        // --- API Call ---
         try {
-            // Replace with your actual backend API endpoint
-            const response = await fetch('http://localhost:9000/api/chat', { // Make sure this matches your backend route
+            const response = await fetch('http://localhost:9000/api/chat', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // Send message and potentially history for context
-                body: JSON.stringify({
-                    message: trimmedInput,
-                    // Optional: send previous messages for context-aware bots
-                    // history: messages,
-                }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: trimmedInput }),
             });
 
             if (!response.ok) {
-                // Throw an error if response status is not OK
                 throw new Error(`API Error: ${response.statusText} (Status: ${response.status})`);
             }
 
-            const data = await response.json();
+            // Explicitly type the parsed data
+            const data: ApiResponse = await response.json();
 
-            // Ensure the backend sends response in expected format, e.g., { response: "..." }
+            // Handle bot response message
             if (data && data.response) {
                 const botMessage: Message = { sender: 'bot', text: data.response };
                 setMessages((prevMessages) => [...prevMessages, botMessage]);
+
+                // Handle suggested actions
+                if (data.suggested_actions && Array.isArray(data.suggested_actions)) {
+                    setSuggestedActions(data.suggested_actions); // <-- Store received actions
+                } else {
+                    setSuggestedActions([]); // Clear actions if none received or invalid format
+                }
+
             } else {
                  console.error("Invalid response format from backend:", data);
                  const errorMessage: Message = { sender: 'bot', text: "Sorry, I received an unexpected response." };
                  setMessages((prevMessages) => [...prevMessages, errorMessage]);
+                 setSuggestedActions([]); // Clear actions on error
             }
 
         } catch (error) {
             console.error('Failed to send message:', error);
-            // Display an error message in the chat
             const errorMessage: Message = { sender: 'bot', text: "Sorry, I couldn't connect. Please try again." };
             setMessages((prevMessages) => [...prevMessages, errorMessage]);
+            setSuggestedActions([]); // Clear actions on error
         } finally {
-            setIsLoading(false); // Hide loading indicator
-            // Refocus input after sending/receiving might be needed depending on UX preference
-            // inputRef.current?.focus(); // requires adding useRef to the input
+            setIsLoading(false);
         }
-        // --- End API Call ---
     };
 
-     // Handle Enter key press in Textarea (Shift+Enter for newline)
-     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault(); // Prevent default newline insertion
+            event.preventDefault();
             handleSendMessage();
         }
     };
 
+    // Function to handle clicking a suggested action (placeholder)
+    const handleActionClick = (action: string) => {
+        console.log("Action clicked:", action);
+        // You would typically trigger another API call or UI change here
+        // Maybe pre-fill the input or send a specific command back?
+        // For now, let's just add it as a user message to simulate choosing it
+        const actionMessage: Message = { sender: 'user', text: `Okay, let's do this: ${action}` };
+        // setMessages((prevMessages) => [...prevMessages, actionMessage]);
+        setCurrentInput(`Okay, let's do this: ${action}`);
+        setSuggestedActions([]); // Clear actions after one is chosen
+
+        // Optionally trigger sending this new message automatically
+        // handleSendMessage(); // Be careful with recursion/loops here
+    };
+
 
     return (
-      // Use Stack for overall vertical layout within the Aside
       <Stack justify="space-between" h="100%">
-        {" "}
-        {/* Make Stack take full height */}
         {/* Scrollable message area */}
-        {/* Using 'auto' height on ScrollArea and flex-grow on its container */}
         <ScrollArea style={{ flexGrow: 1, overflow: "hidden" }} h="100%" viewportRef={viewport} type="auto">
           <Stack p="md" gap="lg">
-            {" "}
-            {/* Add padding and gap between messages */}
             {messages.map((message, index) => (
               <Paper
-                key={index}
-                shadow="xs"
-                radius="lg"
-                p="sm"
-                withBorder
+                key={index} /* Use a more unique key if possible */
+                shadow="xs" radius="lg" p="sm" withBorder
                 style={{
-                  // Align messages left/right based on sender
-                  alignSelf:
-                    message.sender === "user" ? "flex-end" : "flex-start",
-                  // Different background colors for user/bot
-                  backgroundColor:
-                    message.sender === "user"
-                      ? theme.colors.blue[0] // Light blue for user
-                      : theme.colors.gray[1], // Light grey for bot
-                  maxWidth: "80%", // Prevent messages from being too wide
+                  alignSelf: message.sender === "user" ? "flex-end" : "flex-start",
+                  backgroundColor: message.sender === "user" ? theme.colors.blue[0] : theme.colors.gray[1],
+                  maxWidth: "80%",
                 }}
               >
                 <Text size="sm">{message.text}</Text>
               </Paper>
             ))}
-            {/* Loading indicator */}
-            {isLoading && (
-              <Group justify="center" mt="sm">
-                <Loader size="sm" type="dots" />
-              </Group>
+            {isLoading && ( <Group justify="center" mt="sm"> <Loader size="sm" type="dots" /> </Group> )}
+
+            {/* Conditionally render suggested action buttons */}
+            {!isLoading && suggestedActions.length > 0 && (
+              <Stack align="flex-start" mt="sm" pl="sm"> {/* Align buttons left like bot messages */}
+                <Text size="xs" c="dimmed">Suggested Actions:</Text>
+                <Group gap="xs">
+                    {suggestedActions.map((action, index) => (
+                        <Button
+                            key={index}
+                            variant="outline"
+                            size="xs"
+                            onClick={() => handleActionClick(action)}
+                        >
+                            {action}
+                        </Button>
+                    ))}
+                </Group>
+              </Stack>
             )}
           </Stack>
         </ScrollArea>
-        {/* Input area at the bottom */}
-        <Group
-          gap="xs"
-          p="md"
-          wrap="nowrap" // Prevent wrapping
-          style={{ borderTop: `1px solid ${theme.colors.gray[3]}` }}
-        >
+
+        {/* Input area */}
+        {/* Optional Divider */}
+        {/* <Divider my="xs" /> */}
+        <Group gap="xs" p="md" wrap="nowrap" style={{ borderTop: `1px solid ${theme.colors.gray[3]}` }} >
           <Textarea
             placeholder="Ask me anything..."
             value={currentInput}
             onChange={(event) => setCurrentInput(event.currentTarget.value)}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
-            radius="xl" // Rounded corners
-            minRows={1} // Start small
-            maxRows={4} // Limit growth
-            autosize // Enable auto-resizing
-            style={{ flexGrow: 1 }} // Make input take available space
+            radius="xl" minRows={1} maxRows={4} autosize
+            style={{ flexGrow: 1 }}
           />
-
-          <Button
-            onClick={handleSendMessage}
-            loading={isLoading}
-            disabled={!currentInput.trim()}
-            radius="xl"
-          >
+          <Button onClick={handleSendMessage} loading={isLoading} disabled={!currentInput.trim()} radius="xl" >
             Send
           </Button>
-          {/* Or use an Icon */}
-          {/* <ActionIcon
-                  onClick={handleSendMessage}
-                  loading={isLoading} // Show loader on the icon button
-                  disabled={!currentInput.trim()}
-                  size="lg"
-                  variant="filled" // Or "light", "outline"
-                  radius="xl"
-                  color="blue"
-              >
-                  <IconSend size="1.1rem" stroke={1.5} />
-              </ActionIcon> */}
         </Group>
       </Stack>
     );

@@ -1,0 +1,72 @@
+You are analyzing a merchant intent statement in a business intelligence pipeline for a food business.
+Your goal is to categorize the merchant's main point into 'Sales timing intent' and 'Discount timing intent'.
+You must be VERY STRICT. Only populate an intent field if the merchant clearly discusses sales/discount timing or overall sales performance goals/issues.
+
+**CRITICAL RULES FOR IGNORING INPUT:**
+1.  IGNORE simple affirmations, confirmations, or short acknowledgments like "Yes", "ok", "got it", "sure", "thanks", etc. Output 'None' for both intents in these cases.
+2.  IGNORE inputs that are completely unrelated to sales, discounts, customer traffic, business performance, or scheduling (e.g., "I want to buy lollipops", "What's the weather?"). Output 'None' for both intents.
+3.  IGNORE vague statements unless they clearly mention keywords related to sales, discounts, revenue, profit, customers, traffic, timing, schedule, peak, slow periods, increase, decrease, or performance. If unsure, output 'None' for both intents.
+
+**RULES FOR POPULATING INTENTS (ONLY if not ignored by rules above):**
+A.  General questions/statements about overall sales performance (e.g., "increase sales", "why are sales dropping?") MUST be summarized in 'Sales timing intent'.
+B.  Specific mentions of sales timing (e.g., "peak at 12 PM", "busy mornings") go in 'Sales timing intent'.
+C.  Specific mentions of discount timing or strategy (e.g., "discounts before 10 AM", "offer for slow periods") go in 'Discount timing intent'.
+
+Use 'None' for a category ONLY if it's genuinely not mentioned according to ALL the rules above.
+
+Examples demonstrating the rules:
+
+# Valid Intents
+Example 1 (Specific Sales Timing):
+Merchant Intent: Sales usually peak between 12 PM and 2 PM.
+Sales timing intent: Sales usually peak between 12 PM and 2 PM.
+Discount timing intent: None
+
+Example 2 (Specific Discount Timing):
+Merchant Intent: Offering discounts before 10 AM works well.
+Sales timing intent: None
+Discount timing intent: Offering discounts before 10 AM works well.
+
+Example 3 (General Sales Performance - Increase):
+Merchant Intent: How can I increase sales overall?
+Sales timing intent: Wants to increase sales overall.
+Discount timing intent: None
+
+Example 4 (General Sales Performance - Decrease):
+Merchant Intent: Why have my sales been dropping this month?
+Sales timing intent: Wants to understand why sales are dropping this month.
+Discount timing intent: None
+
+Example 5 (Both Intents):
+Merchant Intent: Sales seem slow lately, maybe we should try a morning discount?
+Sales timing intent: Sales seem slow lately.
+Discount timing intent: Maybe try a morning discount.
+
+# Ignored Intents (Output None/None)
+Example 6 (Unrelated):
+Merchant Intent: I love using eco-friendly packaging.
+Sales timing intent: None
+Discount timing intent: None
+
+Example 7 (Simple Affirmation):
+Merchant Intent: Yes
+Sales timing intent: None
+Discount timing intent: None
+
+Example 8 (Simple Acknowledgment):
+Merchant Intent: ok
+Sales timing intent: None
+Discount timing intent: None
+
+Example 9 (Unrelated Request):
+Merchant Intent: I want to buy lollipops
+Sales timing intent: None
+Discount timing intent: None
+
+Now analyze this new merchant intent by strictly following ALL the rules above:
+
+Merchant Intent: {%s}
+
+Format your response ONLY as follows, replacing the placeholders. Do not add any other text, explanation, or greetings:
+Sales timing intent: <extracted_intent_or_summary_or_None>
+Discount timing intent: <extracted_intent_or_None>
