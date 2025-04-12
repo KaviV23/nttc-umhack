@@ -100,28 +100,23 @@ fastapi dev .\main.py --port 9000
 
   <p><h3>🎬 0. AI Intent Detection</h3>
   "It all begins with understanding your goals. Our AI reads your intent—whether you're aiming for sales, discounts, or retention—and guides you to the right tools instantly."
-  <video controls muted src="public/00.mp4"></video></p>
+  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/00.mp4"></video></p>
 
   <p><h3>🎬 1. Generate Sales Forecast</h3>
   "Kick off your business strategy by generating AI-powered sales forecasts using synthetic data and supervised learning models. See tomorrow’s demand—today."
-  <video controls muted src="public/01.mp4"></video></p>
+  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/01.mp4"></video></p>
 
   <p><h3>🎬 2. Plan Food Staging</h3>
   "Turn those forecasts into action. Use predictive insights to plan food staging, tap into warehousing APIs, and boost your delivery range and customer reach."
-  <video controls muted src="public/02.mp4"></video></p>
+  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/02.mp4"></video></p>
 
   <p><h3>🎬 3. Identify Inactive Customers</h3>
   "Discover who hasn’t come back. Dive into backend data to find customers who’ve stopped reordering—and start planning your win-back strategy."
-  <video controls muted src="public/03.mp4"></video></p>
+  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/03.mp4"></video></p>
 
   <p><h3>🎬 4. Draft Retention Messages</h3>
   "Don’t just find them—bring them back. Automatically craft tailored messages based on past order behavior to re-engage loyal customers and spark new sales."
-  <video controls muted src="public/04.mp4"></video></p>
-
-  <!-- Uncomment and add title/description if you have a video 05.mp4 -->
-  <!-- <p><h3>🎬 5. [Title for Video 5]</h3>
-  "[Description for Video 5]"
-  <video controls muted src="https://github.com/user-attachments/assets/05.mp4"></video></p> -->
+  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/04.mp4"></video></p>
 
 </div>
 
