@@ -18,7 +18,7 @@ This repository contains our project submission for the University of Malaya Hac
 **Key Resources:**
 
 *   🎨 **Prototype:** [Figma Prototype](https://www.figma.com/proto/SRxrtm9e8qbYJe3jPzHSmM/UMHackathon?node-id=21-610&p=f&t=2kfCQp9856B8CqSh-0&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=21%3A610)
-*   📄 **Documentation:** [Google Docs](https://docs.google.com/document/d/1mhMB6jfrt9OWpvGafP0qIJ3PaWjJl8cj9_oNQASEMHc/edit?usp=sharing)
+*   📄 **Documentation:** [Google Docs](https://docs.google.com/document/d/1mhMB6jfrt9OWpvGafP0qIJ3PaWjJl8cj9_oNQASEMHc/edit?usp=sharing) | [About The Idea](./docs/ABOUT_THE_IDEA.md)
 
 ---
 
