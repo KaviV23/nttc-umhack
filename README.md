@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/grabcastnback.png" alt="Project Logo" width="450" height="600"/>
+  <img src="public/grabcastnback.png" alt="Project Logo" width="450" height="700"/>
 </p>
 
 <p align="center">
