@@ -100,23 +100,23 @@ fastapi dev .\main.py --port 9000
 
   <p><h3>🎬 0. AI Intent Detection</h3>
   "It all begins with understanding your goals. Our AI reads your intent—whether you're aiming for sales, discounts, or retention—and guides you to the right tools instantly."
-  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/00.mp4"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/8533fa88-f86e-4a34-a511-c37c18852387"></video></p>
 
   <p><h3>🎬 1. Generate Sales Forecast</h3>
   "Kick off your business strategy by generating AI-powered sales forecasts using synthetic data and supervised learning models. See tomorrow’s demand—today."
-  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/01.mp4"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/774d4483-ca46-4a12-bfe9-9096f57db36b"></video></p>
 
   <p><h3>🎬 2. Plan Food Staging</h3>
   "Turn those forecasts into action. Use predictive insights to plan food staging, tap into warehousing APIs, and boost your delivery range and customer reach."
-  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/02.mp4"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/c0bb82cd-dcf1-49d9-9cb0-dc5faf20d845"></video></p>
 
   <p><h3>🎬 3. Identify Inactive Customers</h3>
   "Discover who hasn’t come back. Dive into backend data to find customers who’ve stopped reordering—and start planning your win-back strategy."
-  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/03.mp4"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/6aba3aff-71a8-4e5c-b6d8-945f7fbb9ed8"></video></p>
 
   <p><h3>🎬 4. Draft Retention Messages</h3>
   "Don’t just find them—bring them back. Automatically craft tailored messages based on past order behavior to re-engage loyal customers and spark new sales."
-  <video controls muted src="https://github.com/KaviV23/nttc-umhack/raw/main/public/04.mp4"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/e6426e47-00e1-48a4-97ba-6fb852a151ed"></video></p>
 
 </div>
 
