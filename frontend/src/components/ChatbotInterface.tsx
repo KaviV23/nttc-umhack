@@ -9,30 +9,40 @@ import {
     Loader,
     Group,
     useMantineTheme,
-    Divider, // Import Divider
+    // Divider, // Keep commented if not used
 } from '@mantine/core';
+import { useNavigate } from 'react-router-dom';
 
 // Define the structure for a message
 interface Message {
     sender: 'user' | 'bot';
     text: string;
-    // Optional: Add actions specifically to bot messages if needed,
-    // but managing separately in state might be cleaner.
-    // suggested_actions?: string[];
 }
 
-// Define the expected API response structure
+// Define the expected API response structure for BOTH endpoints
 interface ApiResponse {
     response: string;
-    suggested_actions?: string[]; // Make it optional
+    suggested_actions?: string[]; // Optional for action execution response
 }
+
+// --- Define the initial bot greeting message ---
+const initialBotGreeting = `Hello! I'm your Merchant Assistant.
+I can help you analyze sales data, forecast performance (GrabCast functions like generating forecasts or planning food staging), and manage customer retention campaigns (GrabBack functions like drafting messages or identifying inactive customers).
+
+How can I assist you today?`;
+// --- End Greeting Message ---
 
 function ChatbotInterface() {
     const theme = useMantineTheme();
-    const [messages, setMessages] = useState<Message[]>([]);
+    // --- Initialize state with the greeting message ---
+    const [messages, setMessages] = useState<Message[]>([
+        { sender: 'bot', text: initialBotGreeting }
+    ]);
+    // --- End Initialization ---
     const [currentInput, setCurrentInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [suggestedActions, setSuggestedActions] = useState<string[]>([]); // <-- New state for actions
+    const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
+    const navigate = useNavigate();
 
     const viewport = useRef<HTMLDivElement>(null);
 
@@ -45,64 +55,57 @@ function ChatbotInterface() {
         }, 0);
     };
 
+    // Scroll to bottom whenever messages change
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
-    const handleSendMessage = async () => {
-        const trimmedInput = currentInput.trim();
-        if (!trimmedInput || isLoading) return;
+    // handleSendMessage remains the same as your provided code
+    const handleSendMessage = async (messageOverride?: string) => {
+        const textToSend = (messageOverride ?? currentInput).trim();
+        if (!textToSend || isLoading) return;
 
-        const userMessage: Message = { sender: 'user', text: trimmedInput };
+        const userMessage: Message = { sender: 'user', text: textToSend };
 
         setMessages((prevMessages) => [...prevMessages, userMessage]);
-        setCurrentInput('');
+        if (!messageOverride) { setCurrentInput(''); }
         setIsLoading(true);
-        setSuggestedActions([]); // <-- Clear previous actions when user sends message
+        setSuggestedActions([]);
 
         try {
             const response = await fetch('http://localhost:9000/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: trimmedInput }),
+                body: JSON.stringify({ message: textToSend }),
             });
 
             if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText} (Status: ${response.status})`);
+                throw new Error(`Chat API Error: ${response.statusText} (${response.status})`);
             }
 
-            // Explicitly type the parsed data
             const data: ApiResponse = await response.json();
 
-            // Handle bot response message
             if (data && data.response) {
                 const botMessage: Message = { sender: 'bot', text: data.response };
                 setMessages((prevMessages) => [...prevMessages, botMessage]);
-
-                // Handle suggested actions
-                if (data.suggested_actions && Array.isArray(data.suggested_actions)) {
-                    setSuggestedActions(data.suggested_actions); // <-- Store received actions
-                } else {
-                    setSuggestedActions([]); // Clear actions if none received or invalid format
-                }
-
+                setSuggestedActions(data.suggested_actions && Array.isArray(data.suggested_actions) ? data.suggested_actions : []);
             } else {
-                 console.error("Invalid response format from backend:", data);
-                 const errorMessage: Message = { sender: 'bot', text: "Sorry, I received an unexpected response." };
+                 console.error("Invalid chat response format:", data);
+                 const errorMessage: Message = { sender: 'bot', text: "Sorry, I received an unexpected chat response." };
                  setMessages((prevMessages) => [...prevMessages, errorMessage]);
-                 setSuggestedActions([]); // Clear actions on error
+                 setSuggestedActions([]);
             }
-
         } catch (error) {
-            console.error('Failed to send message:', error);
+            console.error('Failed to send chat message:', error);
             const errorMessage: Message = { sender: 'bot', text: "Sorry, I couldn't connect. Please try again." };
             setMessages((prevMessages) => [...prevMessages, errorMessage]);
-            setSuggestedActions([]); // Clear actions on error
+            setSuggestedActions([]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    // handleKeyDown remains the same
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
@@ -110,22 +113,51 @@ function ChatbotInterface() {
         }
     };
 
-    // Function to handle clicking a suggested action (placeholder)
-    const handleActionClick = (action: string) => {
+    // handleActionClick remains the same
+    const handleActionClick = async (action: string) => {
         console.log("Action clicked:", action);
-        // You would typically trigger another API call or UI change here
-        // Maybe pre-fill the input or send a specific command back?
-        // For now, let's just add it as a user message to simulate choosing it
-        const actionMessage: Message = { sender: 'user', text: `Okay, let's do this: ${action}` };
-        // setMessages((prevMessages) => [...prevMessages, actionMessage]);
-        setCurrentInput(`Okay, let's do this: ${action}`);
-        setSuggestedActions([]); // Clear actions after one is chosen
 
-        // Optionally trigger sending this new message automatically
-        // handleSendMessage(); // Be careful with recursion/loops here
+        if (action === "Identify Inactive Customers") {
+            navigate("/customers?filter=inactive");
+            setSuggestedActions([]);
+            return;
+        }
+
+        setIsLoading(true);
+        setSuggestedActions([]);
+
+        try {
+            const response = await fetch('http://localhost:9000/api/execute_action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action_name: action }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Action API Error: ${response.statusText} (${response.status})`);
+            }
+
+            const data: ApiResponse = await response.json();
+
+            if (data && data.response) {
+                const botMessage: Message = { sender: 'bot', text: data.response };
+                setMessages((prevMessages) => [...prevMessages, botMessage]);
+            } else {
+                 console.error("Invalid action response format:", data);
+                 const errorMessage: Message = { sender: 'bot', text: "Sorry, the action completed but I couldn't get the result." };
+                 setMessages((prevMessages) => [...prevMessages, errorMessage]);
+            }
+        } catch (error) {
+            console.error('Failed to execute action:', error);
+            const errorMessage: Message = { sender: 'bot', text: `Sorry, I couldn't perform the action: ${action}. Please try again.` };
+            setMessages((prevMessages) => [...prevMessages, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
+    // JSX return remains the same, ensuring Text component handles newlines
     return (
       <Stack justify="space-between" h="100%">
         {/* Scrollable message area */}
@@ -133,7 +165,7 @@ function ChatbotInterface() {
           <Stack p="md" gap="lg">
             {messages.map((message, index) => (
               <Paper
-                key={index} /* Use a more unique key if possible */
+                key={`${message.sender}-${index}-${message.text.substring(0, 10)}`}
                 shadow="xs" radius="lg" p="sm" withBorder
                 style={{
                   alignSelf: message.sender === "user" ? "flex-end" : "flex-start",
@@ -141,14 +173,15 @@ function ChatbotInterface() {
                   maxWidth: "80%",
                 }}
               >
-                <Text size="sm">{message.text}</Text>
+                 {/* Ensure whiteSpace handles newlines in greeting */}
+                <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{message.text}</Text>
               </Paper>
             ))}
             {isLoading && ( <Group justify="center" mt="sm"> <Loader size="sm" type="dots" /> </Group> )}
 
             {/* Conditionally render suggested action buttons */}
             {!isLoading && suggestedActions.length > 0 && (
-              <Stack align="flex-start" mt="sm" pl="sm"> {/* Align buttons left like bot messages */}
+              <Stack align="flex-start" mt="sm" pl="sm">
                 <Text size="xs" c="dimmed">Suggested Actions:</Text>
                 <Group gap="xs">
                     {suggestedActions.map((action, index) => (
@@ -168,8 +201,6 @@ function ChatbotInterface() {
         </ScrollArea>
 
         {/* Input area */}
-        {/* Optional Divider */}
-        {/* <Divider my="xs" /> */}
         <Group gap="xs" p="md" wrap="nowrap" style={{ borderTop: `1px solid ${theme.colors.gray[3]}` }} >
           <Textarea
             placeholder="Ask me anything..."
@@ -180,7 +211,7 @@ function ChatbotInterface() {
             radius="xl" minRows={1} maxRows={4} autosize
             style={{ flexGrow: 1 }}
           />
-          <Button onClick={handleSendMessage} loading={isLoading} disabled={!currentInput.trim()} radius="xl" >
+          <Button onClick={() => handleSendMessage()} loading={isLoading} disabled={!currentInput.trim()} radius="xl" >
             Send
           </Button>
         </Group>

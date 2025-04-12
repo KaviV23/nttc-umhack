@@ -1,72 +1,58 @@
 You are analyzing a merchant intent statement in a business intelligence pipeline for a food business.
-Your goal is to categorize the merchant's main point into 'Sales timing intent' and 'Discount timing intent'.
-You must be VERY STRICT. Only populate an intent field if the merchant clearly discusses sales/discount timing or overall sales performance goals/issues.
 
-**CRITICAL RULES FOR IGNORING INPUT:**
-1.  IGNORE simple affirmations, confirmations, or short acknowledgments like "Yes", "ok", "got it", "sure", "thanks", etc. Output 'None' for both intents in these cases.
-2.  IGNORE inputs that are completely unrelated to sales, discounts, customer traffic, business performance, or scheduling (e.g., "I want to buy lollipops", "What's the weather?"). Output 'None' for both intents.
-3.  IGNORE vague statements unless they clearly mention keywords related to sales, discounts, revenue, profit, customers, traffic, timing, schedule, peak, slow periods, increase, decrease, or performance. If unsure, output 'None' for both intents.
+Your goal is to classify the merchant's message into two categories:
+- Sales timing intent (→ GrabCast)
+- Discount timing intent (→ GrabBack)
 
-**RULES FOR POPULATING INTENTS (ONLY if not ignored by rules above):**
-A.  General questions/statements about overall sales performance (e.g., "increase sales", "why are sales dropping?") MUST be summarized in 'Sales timing intent'.
-B.  Specific mentions of sales timing (e.g., "peak at 12 PM", "busy mornings") go in 'Sales timing intent'.
-C.  Specific mentions of discount timing or strategy (e.g., "discounts before 10 AM", "offer for slow periods") go in 'Discount timing intent'.
+You MUST understand these internal tools when categorizing:
+- **GrabCast** = Any request or reference involving **sales forecasting**, **performance analysis**, or **sales timing**.
+- **GrabBack** = Any request or reference involving **discount strategies**, **promotions**, or **retaining/re-engaging customers**.
 
-Use 'None' for a category ONLY if it's genuinely not mentioned according to ALL the rules above.
+Be objective, but practical. Extract an intent if the message:
+- Mentions improving or recovering sales (even without specific timing)
+- Refers to performance issues, growth goals, or forecasts
+- Mentions sales patterns (e.g., lunch rush, slow periods)
+- Mentions or implies discounts, promotions, or customer retention
 
-Examples demonstrating the rules:
+If the message is vague BUT shows a desire to improve the business, infer the most likely intent (GrabCast or GrabBack) based on phrasing or keywords.
 
-# Valid Intents
-Example 1 (Specific Sales Timing):
-Merchant Intent: Sales usually peak between 12 PM and 2 PM.
-Sales timing intent: Sales usually peak between 12 PM and 2 PM.
+Ignore messages that are entirely unrelated to business performance or intent.
+
+---
+
+**Examples:**
+
+Example A (mentions GrabCast):  
+Merchant Intent: I want to use GrabCast to plan my lunch rush better.  
+Sales timing intent: Wants to use GrabCast to improve lunch rush sales.  
 Discount timing intent: None
 
-Example 2 (Specific Discount Timing):
-Merchant Intent: Offering discounts before 10 AM works well.
-Sales timing intent: None
-Discount timing intent: Offering discounts before 10 AM works well.
+Example B (mentions GrabBack):  
+Merchant Intent: Can GrabBack help me get more customers to return?  
+Sales timing intent: None  
+Discount timing intent: Asking if GrabBack can help re-engage customers.
 
-Example 3 (General Sales Performance - Increase):
-Merchant Intent: How can I increase sales overall?
-Sales timing intent: Wants to increase sales overall.
+Example C (general sales):  
+Merchant Intent: I want to increase sales.  
+Sales timing intent: Wants to increase sales.  
 Discount timing intent: None
 
-Example 4 (General Sales Performance - Decrease):
-Merchant Intent: Why have my sales been dropping this month?
-Sales timing intent: Wants to understand why sales are dropping this month.
+Example D (vague, but improvement-focused):  
+Merchant Intent: What else can I do to boost my business?  
+Sales timing intent: Wants to explore strategies to boost business.  
 Discount timing intent: None
 
-Example 5 (Both Intents):
-Merchant Intent: Sales seem slow lately, maybe we should try a morning discount?
-Sales timing intent: Sales seem slow lately.
-Discount timing intent: Maybe try a morning discount.
-
-# Ignored Intents (Output None/None)
-Example 6 (Unrelated):
-Merchant Intent: I love using eco-friendly packaging.
-Sales timing intent: None
+Example E (irrelevant):  
+Merchant Intent: I just installed new lighting in the café.  
+Sales timing intent: None  
 Discount timing intent: None
 
-Example 7 (Simple Affirmation):
-Merchant Intent: Yes
-Sales timing intent: None
-Discount timing intent: None
+---
 
-Example 8 (Simple Acknowledgment):
-Merchant Intent: ok
-Sales timing intent: None
-Discount timing intent: None
-
-Example 9 (Unrelated Request):
-Merchant Intent: I want to buy lollipops
-Sales timing intent: None
-Discount timing intent: None
-
-Now analyze this new merchant intent by strictly following ALL the rules above:
-
+Now analyze the following merchant intent:  
 Merchant Intent: {%s}
 
-Format your response ONLY as follows, replacing the placeholders. Do not add any other text, explanation, or greetings:
-Sales timing intent: <extracted_intent_or_summary_or_None>
-Discount timing intent: <extracted_intent_or_None>
+Respond ONLY with this format:
+
+Sales timing intent: <summary or None>  
+Discount timing intent: <summary or None>

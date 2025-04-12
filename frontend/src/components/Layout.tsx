@@ -63,7 +63,7 @@ function Layout() {
           </Box>
           <Box>
             <Button onClick={toggleAside} variant="light">
-              {asideOpened ? "Close" : "Open"} Sidebar
+              {asideOpened ? "Stop" : "Start"} AI
             </Button>
           </Box>
           {/* You can add more header content here */}
