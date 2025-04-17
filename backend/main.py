@@ -12,6 +12,7 @@ from db.dependencies import get_db
 from models.merchant import Merchant
 from schemas.merchant import Token
 from schemas.request_bodies import LoginRequest, PromptRequest
+from sql_scripts.get_customers_sql import get_customers_sql
 
 app = FastAPI()
 
@@ -52,3 +53,14 @@ def get_merchants(reqBody: LoginRequest, db: Session = Depends(get_db)):
     
     access_token = create_access_token(data={"sub": merchant.merchant_id})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/api/getCustomersByMerchant")
+async def chat(merchant: Merchant = Depends(get_current_merchant), db: Session = Depends(get_db)):
+
+    result = db.execute(text(get_customers_sql(merchant.merchant_id)))
+    rows = result.fetchall()
+    cols = result.keys()
+    data = [dict(zip(cols, row)) for row in rows]
+
+    return { "results": data }

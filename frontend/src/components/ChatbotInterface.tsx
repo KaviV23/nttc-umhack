@@ -75,7 +75,10 @@ function ChatbotInterface() {
         try {
             const response = await fetch('http://localhost:9000/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `bearer ${localStorage.getItem("access_token")}`
+                },
                 body: JSON.stringify({ message: textToSend }),
             });
 
