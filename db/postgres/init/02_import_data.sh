@@ -10,3 +10,4 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     \copy transaction_data_staging(id, order_id, order_time, driver_arrival_time, driver_pickup_time, delivery_time, order_value, eater_id, merchant_id) FROM '$dataDir/transaction_data.csv' DELIMITER ',' CSV HEADER;
     \copy transaction_items_staging(id, order_id, item_id, merchant_id) FROM '$dataDir/transaction_items.csv' DELIMITER ',' CSV HEADER;
 EOSQL
+
