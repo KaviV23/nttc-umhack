@@ -14,12 +14,14 @@ import {
   Center,
   Select,
   Box,
-  rem, // For Mantine v7 specific styling like rem
+  rem,
   Loader,
-  Alert
+  Alert,
+  NumberInput, 
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSelector, IconChevronDown, IconChevronUp, IconSearch, IconAlertCircle } from '@tabler/icons-react';
+import { IconSelector, IconChevronDown, IconChevronUp, IconSearch, IconAlertCircle, IconX } from '@tabler/icons-react';
+import { useSearchParams } from 'react-router-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -30,21 +32,31 @@ import {
   type ColumnDef,
   type SortingState,
   type PaginationState,
+  type ColumnFiltersState,
+  type FilterFn,
+  type Row,
 } from '@tanstack/react-table';
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
 
-// Define the structure of your data rows
+dayjs.extend(isBetween);
+// Simulated "current" date for demo purposes
+const SIMULATED_TODAY = dayjs('2023-12-31'); // Pick your demo date here
+const getToday = () => SIMULATED_TODAY
+
+// Define the structure of data rows
 interface CustomerData {
   customer_id: number;
   last_order_date: string;
   favorite_food: string;
 }
 
+// Define the expected structure of API response
 interface ApiResponse {
-  results: CustomerData[];
+    results: CustomerData[];
 }
 
-// Helper component for Table Headers with Sorting
+// Helper component for Table Headers
 interface ThProps {
   children: React.ReactNode;
   reversed?: boolean;
@@ -57,7 +69,7 @@ function Th({ children, reversed, sorted, onSort, canSort }: ThProps) {
   const Icon = sorted ? (reversed ? IconChevronUp : IconChevronDown) : IconSelector;
   return (
     <Table.Th>
-      <UnstyledButton onClick={canSort ? onSort : undefined} style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+      <UnstyledButton onClick={canSort ? onSort : undefined} style={{ display: 'flex', alignItems: 'center', width: '100%' }} disabled={!canSort}>
         <Group justify="space-between" style={{ flexGrow: 1 }}>
           <Text fw={500} fz="sm">
             {children}
@@ -74,29 +86,84 @@ function Th({ children, reversed, sorted, onSort, canSort }: ThProps) {
 }
 
 
+// --- Filter Function for Date Range ---
+// This filter function checks if the row's date is within the last 'X' days
+const filterByDaysAgo: FilterFn<CustomerData> = (
+  row: Row<CustomerData>,
+  columnId: string,
+  filterValue: number // Expecting the number of days
+) => {
+  if (typeof filterValue !== 'number' || filterValue <= 0) {
+    return true; // If filter value is invalid or not set, don't filter out the row
+  }
+
+  const rowValue = row.getValue(columnId);
+  if (!rowValue) {
+    return false; // If the row doesn't have a date, filter it out
+  }
+
+  const date = dayjs(rowValue as string);
+  if (!date.isValid()) {
+    return false; // If the date is invalid, filter it out
+  }
+
+  // -- REAL DATE --
+  //const today = dayjs();
+  // -- FAKE DATE FOR DEMO PURPOSES
+  const today = getToday();
+  const thresholdDate = today.subtract(filterValue, 'day').startOf('day'); // Go back X days, compare from start of that day
+
+  // Check if the row's date is between the threshold date and today (inclusive of today)
+  return date.isAfter(thresholdDate) && date.isBefore(today.endOf('day'));
+};
+// --- End Custom Filter Function ---
+
+
 const CustomersPage: React.FC = () => {
   // Modal State
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [selectedRowData, setSelectedRowData] = useState<CustomerData | null>(null);
 
+  // Data Fetching State
+  const [data, setData] = useState<CustomerData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   // TanStack Table State
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0, // Initial page index
-    pageSize: 10, // Initial page size
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]); // State for column filters
+  // URL Query Filtering
+  const [searchParams, setSearchParams] = useSearchParams();
+  const daysAgoQuery = searchParams.get('daysAgo');
+  const [filterDaysAgo, setFilterDaysAgoState] = useState<number | ''>(() => {
+    const num = daysAgoQuery ? parseInt(daysAgoQuery, 10) : NaN;
+    return !isNaN(num) && num > 0 ? num : '';
   });
 
-  // State for fetched data, loading, and errors
-  const [data, setData] = useState<CustomerData[]>([]); // Initialize with empty array
-  const [isLoading, setIsLoading] = useState(true); // Start in loading state
-  const [error, setError] = useState<string | null>(null); // To store potential fetch errors
+  const setFilterDaysAgo = (value: number | '') => {
+    setFilterDaysAgoState(value);
+  
+    if (typeof value === 'number' && value > 0) {
+      searchParams.set('daysAgo', value.toString());
+    } else {
+      searchParams.delete('daysAgo');
+    }
+  
+    setSearchParams(searchParams);
+  };
+  
+  
 
+  // --- Data Fetching Logic
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
-
       try {
         const response = await fetch(
           `${import.meta.env.VITE_BACKEND_URL}/api/getCustomersByMerchant`,
@@ -111,28 +178,44 @@ const CustomersPage: React.FC = () => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const result: ApiResponse = await response.json();
-
         setData(result.results || []);
       } catch (e) {
         console.error("Failed to fetch customer data:", e);
-        setError("Failed to load customer data. Please try again later."); // Set user-friendly error message
-        setData([]); // Clear data on error
+        setError("Failed to load customer data. Please try again later.");
+        setData([]);
       } finally {
-        setIsLoading(false); // Set loading false after fetch attempt (success or failure)
+        setIsLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  // Define columns using TanStack's ColumnDef
+  // --- Effect to Update Column Filters based on filterDaysAgo ---
+  useEffect(() => {
+    // Update the columnFilters state when filterDaysAgo changes
+    setColumnFilters(prevFilters => {
+        // Remove any existing filter for 'last_order_date'
+        const otherFilters = prevFilters.filter(f => f.id !== 'last_order_date');
+
+        // If filterDaysAgo has a valid number, add the new filter
+        if (typeof filterDaysAgo === 'number' && filterDaysAgo > 0) {
+            return [...otherFilters, { id: 'last_order_date', value: filterDaysAgo }];
+        }
+
+        // Otherwise, just return the filters for other columns
+        return otherFilters;
+    });
+
+  }, [filterDaysAgo]); // Re-run this effect when filterDaysAgo changes
+
+  // --- Column Definitions ---
   const columns = useMemo<ColumnDef<CustomerData>[]>(
     () => [
       {
         accessorKey: 'customer_id',
         header: 'User ID',
         enableSorting: true,
-        enableGlobalFilter: true, // Explicitly needed for global filter function
+        enableColumnFilter: false, // Disable default column filter UI for this
       },
       {
         accessorKey: 'last_order_date',
@@ -142,20 +225,23 @@ const CustomersPage: React.FC = () => {
             return dateValue ? dayjs(dateValue).format('YYYY-MM-DD HH:mm') : 'N/A';
         },
         enableSorting: true,
-        enableGlobalFilter: false, // Usually don't globally filter formatted dates
+        filterFn: filterByDaysAgo, // Assign the custom filter function
+        enableColumnFilter: true, // Enable column filtering logic for this column
+        // Disable the default UI filter input provided by some table libs if needed
+        // enableGlobalFilter: false // Already set
       },
       {
         accessorKey: 'favorite_food',
         header: 'Favourite Food',
         enableSorting: true,
-        enableGlobalFilter: true,
+        enableColumnFilter: false,
       },
       {
         id: 'actions',
         header: 'Action',
         enableSorting: false,
-        enableGlobalFilter: false,
-        cell: ({ row }) => ( // Use info.row in TanStack v8
+        enableColumnFilter: false,
+        cell: ({ row }) => (
           <Button
             variant="outline"
             size="xs"
@@ -163,53 +249,90 @@ const CustomersPage: React.FC = () => {
               setSelectedRowData(row.original);
               openModal();
             }}
+            disabled={isLoading}
           >
             Generate Email
           </Button>
         ),
       },
     ],
-    [openModal] // Dependency for the action cell
+    [openModal, isLoading]
   );
 
-  // Create TanStack Table instance
+  // --- TanStack Table Instance ---
   const table = useReactTable({
     data,
     columns,
-    state: { // Pass state variables
+    filterFns: {
+      // You *could* register the filterFn here globally if used in many places
+      // filterByDaysAgo: filterByDaysAgo, // But defining it directly on the column is fine too
+    },
+    state: {
       sorting,
       globalFilter,
       pagination,
+      columnFilters,
     },
-    onSortingChange: setSorting, // Wire up state update functions
+    onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(), // Enable basic row model
-    getSortedRowModel: getSortedRowModel(), // Enable sorting
-    getFilteredRowModel: getFilteredRowModel(), // Enable filtering (needed for global)
-    getPaginationRowModel: getPaginationRowModel(), // Enable pagination
-    // debugTable: true, // Uncomment for debugging
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
   const pageCount = table.getPageCount();
   const currentPage = table.getState().pagination.pageIndex + 1;
 
+  // Handler to clear the date filter
+  const clearDateFilter = () => {
+      setFilterDaysAgo('');
+  };
+
+  // --- Render Logic ---
   return (
     <Box>
-      <Title order={2} mb="md">Customer Data</Title>
+      <Title order={2}>Customer Data</Title>
+      <Text mb="md">As of {getToday().toString()}</Text>
 
-      {/* Filter Input */}
-      <TextInput
-        placeholder="Search all columns..."
-        leftSection={<IconSearch style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
-        value={globalFilter ?? ''}
-        onChange={(event) => setGlobalFilter(event.currentTarget.value)}
-        mb="md"
-        style={{ maxWidth: rem(400) }}
-        disabled={isLoading || !!error} // Disable search if loading or error
-      />
+      {/* Filter Controls */}
+      <Group mb="md" align="flex-end">
+        {/* Global Text Filter */}
+        <TextInput
+            label="Search All"
+            placeholder="Search ID, food..."
+            leftSection={<IconSearch style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
+            value={globalFilter ?? ''}
+            onChange={(event) => setGlobalFilter(event.currentTarget.value)}
+            style={{ flexGrow: 1, minWidth: rem(200) }}
+            disabled={isLoading || !!error}
+        />
+        {/* Programmatic Date Filter Input */}
+        <NumberInput
+            label="Last Order Within (Days)"
+            placeholder="e.g., 30"
+            value={filterDaysAgo}
+            onChange={setFilterDaysAgo} // Directly set the state
+            min={1} // Optional: minimum days
+            step={1}
+            allowDecimal={false}
+            disabled={isLoading || !!error}
+            style={{ width: rem(200) }}
+            rightSection={
+                filterDaysAgo ? (
+                    <UnstyledButton onClick={clearDateFilter} aria-label="Clear date filter">
+                         <IconX style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
+                    </UnstyledButton>
+                ) : null
+            }
+            rightSectionPointerEvents="all"
+        />
+      </Group>
 
-      {/* Display Error Alert if fetch failed */}
+
+      {/* Display Error Alert */}
       {error && (
         <Alert title="Error" color="red" icon={<IconAlertCircle />} mb="md">
           {error}
@@ -219,64 +342,65 @@ const CustomersPage: React.FC = () => {
       {/* Table Area */}
       <ScrollArea>
         <Table miw={700} striped highlightOnHover withTableBorder withColumnBorders verticalSpacing="sm">
-          <Table.Thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <Table.Tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <Th
-                    key={header.id}
-                    sorted={header.column.getIsSorted() === 'asc'}
-                    reversed={header.column.getIsSorted() === 'desc'}
-                    onSort={header.column.getToggleSortingHandler()}
-                    canSort={header.column.getCanSort() && !isLoading && !error} // Can only sort if not loading/error
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </Th>
-                ))}
-              </Table.Tr>
-            ))}
-          </Table.Thead>
-          <Table.Tbody>
-            {/* Show Loading State */}
-            {isLoading && (
-              <Table.Tr>
-                <Table.Td colSpan={columns.length} style={{ textAlign: 'center' }}>
-                  <Loader size="md" />
-                  <Text mt="sm">Loading data...</Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-
-            {/* Show No Data / Filtered Out Message */}
-            {!isLoading && !error && table.getRowModel().rows.length === 0 && (
-               <Table.Tr>
-                 <Table.Td colSpan={columns.length} style={{ textAlign: 'center' }}>
-                   {data.length === 0
-                     ? "No customer data available." // API returned empty list
-                     : "No customers found matching your search." // Data exists, but filter yields no results
-                   }
-                 </Table.Td>
-               </Table.Tr>
-            )}
-
-            {/* Render Table Rows */}
-            {!isLoading && !error && table.getRowModel().rows.length > 0 && (
-              table.getRowModel().rows.map((row) => (
-                <Table.Tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <Table.Td key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </Table.Td>
+           <Table.Thead>
+              {/* Header rendering remains the same */}
+              {table.getHeaderGroups().map((headerGroup) => (
+                <Table.Tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <Th
+                      key={header.id}
+                      sorted={header.column.getIsSorted() === 'asc'}
+                      reversed={header.column.getIsSorted() === 'desc'}
+                      onSort={header.column.getToggleSortingHandler()}
+                      canSort={header.column.getCanSort() && !isLoading && !error}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </Th>
                   ))}
                 </Table.Tr>
-              ))
-            )}
-          </Table.Tbody>
+              ))}
+            </Table.Thead>
+            <Table.Tbody>
+              {/* Loading State */}
+              {isLoading && (
+                <Table.Tr>
+                  <Table.Td colSpan={columns.length} style={{ textAlign: 'center' }}>
+                    <Loader size="md" />
+                    <Text mt="sm">Loading data...</Text>
+                  </Table.Td>
+                </Table.Tr>
+              )}
+
+              {/* No Data / Filtered Out Message */}
+              {!isLoading && !error && table.getRowModel().rows.length === 0 && (
+                 <Table.Tr>
+                   <Table.Td colSpan={columns.length} style={{ textAlign: 'center' }}>
+                     {data.length === 0
+                       ? "No customer data available."
+                       : "No customers found matching your filter criteria." // Generic message for any filter
+                     }
+                   </Table.Td>
+                 </Table.Tr>
+              )}
+
+              {/* Render Table Rows */}
+              {!isLoading && !error && table.getRowModel().rows.length > 0 && (
+                table.getRowModel().rows.map((row) => (
+                  <Table.Tr key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <Table.Td key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </Table.Td>
+                    ))}
+                  </Table.Tr>
+                ))
+              )}
+            </Table.Tbody>
         </Table>
       </ScrollArea>
 
@@ -284,42 +408,43 @@ const CustomersPage: React.FC = () => {
       {/* Only show pagination if not loading, no error, and there's data */}
       {!isLoading && !error && data.length > 0 && (
           <Group justify="space-between" align="center" mt="md">
-            <Text size="sm">
+             {/* Row count display */}
+             <Text size="sm">
                 Showing{' '}
                 {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}
                 {' '}-{' '}
                 {Math.min(
                     (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                    table.getFilteredRowModel().rows.length // Base count on filtered rows
+                    table.getFilteredRowModel().rows.length // Count based on filtered rows
                 )}
                 {' '}of {table.getFilteredRowModel().rows.length} customers
             </Text>
-            <Group>
+            {/* Rows per page + Pagination */}
+             <Group>
                 <Text size="sm">Rows per page:</Text>
-                <Select
-                    style={{width: rem(80)}}
-                    value={String(table.getState().pagination.pageSize)}
-                    onChange={(value) => {
+                 <Select
+                     style={{width: rem(80)}}
+                     value={String(table.getState().pagination.pageSize)}
+                     onChange={(value) => {
                         if (value) {
                             table.setPageSize(Number(value));
                         }
-                    }}
-                    data={['5', '10', '20', '50', '100']}
-                    allowDeselect={false}
-                    disabled={pageCount <= 1 && table.getFilteredRowModel().rows.length <= table.getState().pagination.pageSize} // Disable if only one page worth of data
-                />
-                <Pagination
+                     }}
+                     data={['5', '10', '20', '50', '100']}
+                     allowDeselect={false}
+                     disabled={table.getFilteredRowModel().rows.length <= 5} // Example: disable if not enough rows
+                 />
+                 <Pagination
                     total={pageCount}
                     value={currentPage}
                     onChange={(page) => table.setPageIndex(page - 1)}
                     disabled={pageCount <= 1}
-                />
-            </Group>
+                    />
+             </Group>
           </Group>
       )}
 
-
-      {/* Email Preview Modal (same as before) */}
+      {/* Email Preview Modal */}
       <Modal
         opened={modalOpened}
         onClose={closeModal}
@@ -328,7 +453,7 @@ const CustomersPage: React.FC = () => {
         size="lg"
       >
          {/* Modal content remains the same */}
-          <Stack gap="md">
+         <Stack gap="md">
             <Text>
                 This is a preview of the AI-generated email for User ID{' '}
                 <Text span fw={700}>{selectedRowData?.customer_id}</Text>.
