@@ -23,6 +23,10 @@ interface Message {
 interface ApiResponse {
     response: string;
     suggested_actions?: string[]; // Optional for action execution response
+    function_call?: {
+        name: string,
+        args: Record<string, string | number | boolean | []>
+    }
 }
 
 // --- Define the initial bot greeting message ---
@@ -92,6 +96,22 @@ function ChatbotInterface() {
                 const botMessage: Message = { sender: 'bot', text: data.response };
                 setMessages((prevMessages) => [...prevMessages, botMessage]);
                 setSuggestedActions(data.suggested_actions && Array.isArray(data.suggested_actions) ? data.suggested_actions : []);
+
+                // TEMPORARY
+                switch (data.function_call?.name) {
+                    case "show_customers":
+                        if(data.function_call.args.daysAgo) {
+                            navigate(`/customers?daysAgo=${data.function_call.args.daysAgo}`);
+                        } else {
+                            navigate("/customers");
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+                
+
             } else {
                  console.error("Invalid chat response format:", data);
                  const errorMessage: Message = { sender: 'bot', text: "Sorry, I received an unexpected chat response." };

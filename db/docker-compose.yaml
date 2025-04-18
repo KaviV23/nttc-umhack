@@ -9,7 +9,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: Nttc1234
     restart: unless-stopped
   postgres:
-    build: ./postgres/
+    build: ./postgres
     container_name: postgres-nttc
     ports:
       - "5432:5432"

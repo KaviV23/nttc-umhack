@@ -13,6 +13,7 @@ from models.merchant import Merchant
 from schemas.merchant import Token
 from schemas.request_bodies import LoginRequest, PromptRequest
 from sql_scripts.get_customers_sql import get_customers_sql
+from ai.tools import show_customers_function
 
 app = FastAPI()
 
@@ -25,9 +26,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 @app.post("/api/chat")
 async def chat(reqBody: PromptRequest, merchant: Merchant = Depends(get_current_merchant)):
 
+    geminiTools = types.Tool(function_declarations=[show_customers_function])
+
     # AI Agent Instructions
     geminiConf = types.GenerateContentConfig(
-        system_instruction=open("./prompts/prompt3.txt", "r").read(),
+        system_instruction=open("./ai/prompts/prompt3.txt", "r").read(),
+        tools=[geminiTools]
     )
 
     geminiClient = genai.Client(api_key=GEMINI_API_KEY)
@@ -39,9 +43,20 @@ async def chat(reqBody: PromptRequest, merchant: Merchant = Depends(get_current_
         contents=reqBody.message
     )
 
-    return {
-        "response": geminiResponse.text
-    }
+    if geminiResponse.candidates[0].content.parts[0].function_call:
+        function_call = geminiResponse.candidates[0].content.parts[0].function_call
+        return {
+            "response": "Alright, here are your customers. Let me know if you need help with anything else!",
+            "function_call": {
+                "name": function_call.name,
+                "args": function_call.args,
+            }
+        }
+    else:
+        return {
+            "response": geminiResponse.text,
+        }
+
 
 # Login API
 @app.post("/api/login", response_model=Token)
