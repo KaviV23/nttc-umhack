@@ -1,4 +1,6 @@
 -- Drop tables in correct order to avoid FK conflicts
+DROP TABLE IF EXISTS new_transaction_items;
+DROP TABLE IF EXISTS new_transaction_items_staging;
 DROP TABLE IF EXISTS transaction_items;
 DROP TABLE IF EXISTS transaction_data;
 DROP TABLE IF EXISTS keywords;
@@ -9,7 +11,6 @@ DROP TABLE IF EXISTS merchants;
 CREATE TABLE merchants (
     merchant_id CHAR(5) PRIMARY KEY,
     merchant_name VARCHAR(255) NOT NULL,
-    -- USE TEXT FIRST, RUN 03_convert_merchants_table.sql to convert back into date
     join_date TEXT NOT NULL,
     city_id INT
 );
@@ -48,7 +49,7 @@ CREATE TABLE transaction_data (
     FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id) ON DELETE CASCADE
 );
 
--- Create 'transaction_data_staging' table (for clearing out duplicated)
+-- Create 'transaction_data_staging' table
 CREATE TABLE transaction_data_staging(
     id INT PRIMARY KEY,
     order_id VARCHAR(100) NOT NULL,
@@ -70,10 +71,26 @@ CREATE TABLE transaction_items (
     FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
 );
 
--- Create 'transaction_items_staging' table (for clearing out merchant_id)
+-- Create 'transaction_items_staging' table
 CREATE TABLE transaction_items_staging (
     id INT PRIMARY KEY,
     order_id VARCHAR(100) NOT NULL,
     item_id INT NOT NULL,
     merchant_id CHAR(5) NOT NULL
+);
+
+-- Create 'new_transaction_items' table
+CREATE TABLE new_transaction_items (
+    order_id VARCHAR(100),
+    merchant_id CHAR(5),
+    item_id INT,
+    quantity INT
+);
+
+-- Create staging for new_transaction_items
+CREATE TABLE new_transaction_items_staging (
+    order_id VARCHAR(100),
+    merchant_id CHAR(5),
+    item_id INT,
+    quantity INT
 );
