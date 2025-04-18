@@ -1,4 +1,4 @@
-import { Paper, Title, Text, SimpleGrid, useMantineTheme } from '@mantine/core';
+import { Paper, Title, SimpleGrid, useMantineTheme } from '@mantine/core';
 import {
     LineChart,
     Line,

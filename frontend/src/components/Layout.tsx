@@ -36,7 +36,6 @@ function Layout() {
   return (
     <AppShell
       padding="md"
-      w="1400px"
       header={{ height: 60 }}
       navbar={{
         width: 250, // Width of the left sidebar
