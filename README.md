@@ -3,7 +3,6 @@
 </p>
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/frontend-react%20%7C%20mantine-blue?style=for-the-badge" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/backend-fastapi%20%7C%20ollama-green?style=for-the-badge" /></a>
   <a href="#"><img src="https://img.shields.io/badge/storage-postgresql%20%7C%20csv-yellow?style=for-the-badge" /></a>
   <a href="#"><img src="https://img.shields.io/badge/infra-docker%20%7C%20nginx-lightgrey?style=for-the-badge" /></a>
 </p>
@@ -76,8 +75,10 @@ fastapi dev .\main.py --port 9000
 
 ### Back-End
 - **FastAPI** for API logic and routing
-- **Gemini Flash** for local LLM integration
-
+- **Gemini Flash** for cloud-based API LLM integration
+- **ipynb** for data analytics
+- **polars** for blazingly fast dataframes
+  
 ### Storage
 - **PostgreSQL** for persistent relational data
 - **CSV files** for lightweight tabular data ingestion/export
@@ -87,28 +88,15 @@ fastapi dev .\main.py --port 9000
 
 ---
 
-## 📹 In Action
+## 📹 Full Featured Walkthrough
 
 <div align="center">
 
-  <p><h3>🎬 1. AI Intent Detection</h3>
+  <p><h3GrabEX MEX Assistant</h3>
   "It all begins with understanding your goals. Our AI reads your intent—whether you're aiming for sales, discounts, or retention—and guides you to the right tools instantly."
-  <video controls muted src="https://github.com/user-attachments/assets/8533fa88-f86e-4a34-a511-c37c18852387"></video></p>
-
-  <p><h3>🎬 2. Generate Sales Forecast</h3>
-  "Kick off your business strategy by generating AI-powered sales forecasts using synthetic data and supervised learning models. See tomorrow’s demand—today."
-  <video controls muted src="https://github.com/user-attachments/assets/774d4483-ca46-4a12-bfe9-9096f57db36b"></video></p>
-
-  <p><h3>🎬 3. Identify Inactive Customers</h3>
-  "Discover who hasn’t come back. Dive into backend data to find customers who’ve stopped reordering—and start planning your win-back strategy."
-  <video controls muted src="https://github.com/user-attachments/assets/6aba3aff-71a8-4e5c-b6d8-945f7fbb9ed8"></video></p>
-
-  <p><h3>🎬 4. Draft Retention Messages</h3>
-  "Don’t just find them—bring them back. Automatically craft tailored messages based on past order behavior to re-engage loyal customers and spark new sales."
-  <video controls muted src="https://github.com/user-attachments/assets/e6426e47-00e1-48a4-97ba-6fb852a151ed"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/9574bc22-2417-4ec8-b476-8083d304d511"></video></p>
 
 </div>
-
 ---
 
 ## 📚 Documentation & Tutorials
