@@ -18,7 +18,7 @@ from schemas.merchant import Token
 from schemas.request_bodies import LoginRequest, PromptRequest, HistoryMessage
 from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import gemini_function_declarations
-from forecasts.forecast_qty import router as forecast_qty_router
+from forecasts.forecast_qty import router as forecast_qty_router, forecast_quantity, get_forecasted_quantities
 from forecasts.forecast_sales import router as forecast_sales_router, forecast_orders, calculate_total_sales
 
 app = FastAPI()
@@ -97,6 +97,27 @@ async def chat(reqBody: PromptRequest, merchant: Merchant = Depends(get_current_
                         "args": function_args,
                     },
                     "data": total_sales
+                }
+            
+            case "get_forecasted_quantities":
+                # Get forecast data first
+                forecast_data = forecast_quantity(merchant)
+                # Get forecasted quantities
+                quantities = get_forecasted_quantities(forecast_data, days=function_args["days"])
+                
+                # Format the quantities into a readable string
+                quantities_text = f"Here are the forecasted quantities for the next {int(function_args['days'])} days:\n\n" + "\n".join([
+                    f"* {item_name}: {int(round(qty))} units"
+                    for item_name, qty in quantities["total_quantities_per_item"].items()
+                ])
+                
+                return {
+                    "response": quantities_text,
+                    "function_call": {
+                        "name": function_name,
+                        "args": function_args,
+                    },
+                    "data": quantities
                 }
             
             # Standard response for functions in dictionary

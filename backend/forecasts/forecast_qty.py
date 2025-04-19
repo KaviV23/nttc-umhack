@@ -22,10 +22,7 @@ def forecast_quantity(merchant: Merchant = Depends(get_current_merchant)):
     )
 
     # 1) Load raw data (timestamp, item_id, quantity)
-    query = (
-        "SELECT order_time, item_id, quantity "
-        f"FROM combined_order_view WHERE order_merchant_id = '{merchant_id}'"
-    )
+    query = f"SELECT * FROM combined_order_view WHERE order_merchant_id = '{merchant_id}'"
     try:
         df = pl.read_database_uri(uri=uri, query=query)
     except Exception as e:
@@ -38,9 +35,9 @@ def forecast_quantity(merchant: Merchant = Depends(get_current_merchant)):
     ])
     daily = (
         df
-        .group_by(["order_date", "item_id"] )
+        .group_by(["order_date", "item_id", "item_name"])
         .agg(pl.col("quantity").sum().alias("daily_quantity_sold"))
-        .sort(["order_date", "item_id"] )
+        .sort(["order_date", "item_id"])
     )
 
     # 3) Feature engineering: date parts
@@ -82,18 +79,26 @@ def forecast_quantity(merchant: Merchant = Depends(get_current_merchant)):
         "daily_quantity_sold": "actual"
     }, inplace=True)
 
-    # Pivot predicted and actual to wide format
-    pivot_pred = hist_df.pivot(
-        index="order_date", columns="item_id", values="predicted_quantity"
-    )
-    pivot_pred.columns = [f"item_{col}_pred" for col in pivot_pred.columns]
-
-    pivot_actual = hist_df.pivot(
-        index="order_date", columns="item_id", values="actual"
-    )
-    pivot_actual.columns = [f"item_{col}_actual" for col in pivot_actual.columns]
-
-    hist_wide = pivot_pred.join(pivot_actual).sort_index()
+    # Process the data to include item names
+    output_data = []
+    output_data_with_ids = []
+    for date in hist_df["order_date"].unique():
+        date_data = hist_df[hist_df["order_date"] == date]
+        record = {"order_date": date}
+        record_with_ids = {"order_date": date}
+        
+        for _, row in date_data.iterrows():
+            item_id = str(row["item_id"])
+            item_name = row["item_name"]
+            # Format with item names
+            record[f"{item_name}_pred"] = row["predicted_quantity"]
+            record[f"{item_name}_actual"] = row["actual"]
+            # Format with item IDs
+            record_with_ids[f"item_{item_id}_pred"] = row["predicted_quantity"]
+            record_with_ids[f"item_{item_id}_actual"] = row["actual"]
+        
+        output_data.append(record)
+        output_data_with_ids.append(record_with_ids)
 
     # 8) Future forecast: next 30 days for each item_id
     unique_items = pdf["item_id"].unique()
@@ -109,10 +114,49 @@ def forecast_quantity(merchant: Merchant = Depends(get_current_merchant)):
     num_dates = len(future_dates)
     num_items = len(unique_items)
     total_rows = num_dates * num_items
-    
 
-    # 9) Return JSON-friendly lists
+    # 9) Return JSON-friendly lists with both formats
     return {
         "merchant_id": merchant_id,
-        "historical_evaluation": hist_wide.reset_index().to_dict(orient="records"),
+        "historical_evaluation": output_data,
+        "graph_forecast_ids": output_data_with_ids
+    }
+
+def get_forecasted_quantities(forecast_data: dict, days: int) -> dict:
+    """
+    Get forecasted quantities for each item for a specific number of days.
+    
+    Args:
+        forecast_data: Output dictionary from forecast_quantity function
+        days: Number of days to get forecast for (1-30)
+    
+    Returns:
+        Dictionary containing forecasted quantities per item
+    """
+    # Ensure days is an integer
+    days = int(days)
+    if days <= 0 or days > 30:
+        raise ValueError("Days must be between 1 and 30")
+    
+    # Get the forecast data and limit to requested days
+    forecast_days = forecast_data["historical_evaluation"][:days]
+    
+    # Calculate total quantities per item
+    item_totals = {}
+    for day in forecast_days:
+        for key, value in day.items():
+            if key.endswith("_pred"):
+                item_name = key.replace("_pred", "")
+                if item_name not in item_totals:
+                    item_totals[item_name] = 0
+                item_totals[item_name] += value
+    
+    return {
+        "forecast_period_days": days,
+        "total_quantities_per_item": {
+            item_name: round(total, 2)
+            for item_name, total in item_totals.items()
+            if item_name != "order_date"  # Exclude the date field
+        },
+        "daily_breakdown": forecast_days
     }
