@@ -97,31 +97,22 @@ def forecast_quantity(merchant: Merchant = Depends(get_current_merchant)):
 
     # 8) Future forecast: next 30 days for each item_id
     unique_items = pdf["item_id"].unique()
+    # Get the last date from the dataset and ensure it's in the correct format
+    last_date = pd.to_datetime(all_dates[-1]).date()
     future_dates = pd.date_range(
-        start=all_dates[-1] + pd.Timedelta(days=1),
-        periods=30, freq="D"
-    )
-    fut = pd.DataFrame({
-        "forecast_date": np.repeat(future_dates, len(unique_items)),
-        "item_id": np.tile(unique_items, len(future_dates))
-    })
-    fut["weekday"] = fut["forecast_date"].dt.weekday
-    fut["month"] = fut["forecast_date"].dt.month
-    fut["day"] = fut["forecast_date"].dt.day
-    fut["predicted_quantity"] = np.round(
-        model.predict(fut[["weekday", "month", "day", "item_id"]]), 2
-    )
-
-    # Pivot future forecast
-    pivot_fut = fut.pivot(
-        index="forecast_date", columns="item_id", values="predicted_quantity"
-    )
-    pivot_fut.columns = [f"item_{col}_pred" for col in pivot_fut.columns]
-    fut_wide = pivot_fut.sort_index()
+        start=last_date + pd.Timedelta(days=1),
+        periods=30,
+        freq="D"
+    ).date  # Convert to date objects to avoid timezone issues
+    
+    # Create arrays with proper lengths
+    num_dates = len(future_dates)
+    num_items = len(unique_items)
+    total_rows = num_dates * num_items
+    
 
     # 9) Return JSON-friendly lists
     return {
         "merchant_id": merchant_id,
         "historical_evaluation": hist_wide.reset_index().to_dict(orient="records"),
-        "future_forecast": fut_wide.reset_index().to_dict(orient="records")
     }

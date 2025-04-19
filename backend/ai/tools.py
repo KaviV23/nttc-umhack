@@ -15,9 +15,26 @@ gemini_function_declarations = [
       },
     },
   ),
+
   # GrabBack: Send Emails
   FunctionDeclaration(
     name="send_emails",
     description="An option the user has after requesting to show customers."
+  ),
+
+  # GrabBack: Calculate Total Sales per LLM call
+  FunctionDeclaration(
+    name="calculate_total_sales",
+    description="Calculate total forecasted sales for a specific period between 1 and 30 days from forecast data.",
+    parameters={
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "description": "Number of days to calculate total for (must be between 1 and 30)"
+        }
+      },
+      "required": ["days"]
+    }
   )
 ]

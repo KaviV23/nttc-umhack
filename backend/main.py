@@ -19,7 +19,7 @@ from schemas.request_bodies import LoginRequest, PromptRequest, HistoryMessage
 from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import gemini_function_declarations
 from forecasts.forecast_qty import router as forecast_qty_router
-from forecasts.forecast_sales import router as forecast_sales_router
+from forecasts.forecast_sales import router as forecast_sales_router, forecast_orders, calculate_total_sales
 
 app = FastAPI()
 
@@ -71,14 +71,46 @@ async def chat(reqBody: PromptRequest, merchant: Merchant = Depends(get_current_
 
     if geminiResponse.candidates[0].content.parts[0].function_call:
         function_call = geminiResponse.candidates[0].content.parts[0].function_call
-        print(function_call)
-        return {
-            "response": await chatFunctionHelper(f'Successfully executed function "{function_call.name}" with args {dict(function_call.args)}', formatted_history),
-            "function_call": {
-                "name": function_call.name,
-                "args": dict(function_call.args),
-            }
+        function_name = function_call.name
+        function_args = dict(function_call.args)
+        
+        # Dictionary of functions that expect standard response
+        standard_functions = {
+            "send_emails": True,
+            "show_customers": True
         }
+        
+        match function_name:
+            # Specialized functions - handle custom logic
+            case "calculate_total_sales":
+                # Get forecast data first
+                forecast_data = forecast_orders(merchant)
+                # Calculate total sales
+                total_sales = calculate_total_sales(forecast_data, days=function_args["days"])
+                return {
+                    "response": await chatFunctionHelper(
+                        f'Total forecasted sales for {function_args["days"]} days: ${total_sales["total_forecasted_sales"]}',
+                        formatted_history
+                    ),
+                    "function_call": {
+                        "name": function_name,
+                        "args": function_args,
+                    },
+                    "data": total_sales
+                }
+            
+            # Standard response for functions in dictionary
+            case _ if function_name in standard_functions:
+                return {
+                    "response": await chatFunctionHelper(
+                        f'Successfully executed function "{function_name}" with args {function_args}',
+                        formatted_history
+                    ),
+                    "function_call": {
+                        "name": function_name,
+                        "args": function_args,
+                    }
+                }
     else:
         return {
             "response": geminiResponse.text,

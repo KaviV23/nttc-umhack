@@ -156,3 +156,35 @@ def forecast_orders(merchant: Merchant = Depends(get_current_merchant)):
         "historical_evaluation": eval_df.to_dict(orient="records"),
         "future_forecast": fut_df.to_dict(orient="records"),
     }
+
+def calculate_total_sales(forecast_data: dict, days: int) -> dict:
+    """
+    Calculate total sales from forecast_orders output for a specific number of days.
+    
+    Args:
+        forecast_data: Output dictionary from forecast_orders function
+        days: Number of days to calculate total for (1-30)
+    
+    Returns:
+        Dictionary containing total sales and daily breakdown
+    """
+    # Ensure days is an integer
+    days = int(days)
+    if days <= 0 or days > 30:
+        raise ValueError("Days must be between 1 and 30")
+    
+    # Get the forecast data and limit to requested days
+    forecast_days = forecast_data["future_forecast"][:days]
+    
+    # Rename forecast_date to order_date
+    for day in forecast_days:
+        day["order_date"] = day.pop("forecast_date")
+    
+    # Calculate total sales
+    total_sales = sum(day["forecasted_revenue"] for day in forecast_days)
+    
+    return {
+        "forecast_period_days": days,
+        "total_forecasted_sales": round(total_sales, 2),
+        "daily_breakdown": forecast_days
+    }
