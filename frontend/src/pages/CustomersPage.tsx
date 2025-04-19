@@ -192,21 +192,22 @@ const CustomersPage: React.FC = () => {
 
   // --- Effect to Update Column Filters based on filterDaysAgo ---
   useEffect(() => {
-    // Update the columnFilters state when filterDaysAgo changes
+    const num = daysAgoQuery ? parseInt(daysAgoQuery, 10) : NaN;
+    const validDaysAgo = !isNaN(num) && num > 0 ? num : '';
+  
+    setFilterDaysAgoState(validDaysAgo);
+  
     setColumnFilters(prevFilters => {
-        // Remove any existing filter for 'last_order_date'
-        const otherFilters = prevFilters.filter(f => f.id !== 'last_order_date');
-
-        // If filterDaysAgo has a valid number, add the new filter
-        if (typeof filterDaysAgo === 'number' && filterDaysAgo > 0) {
-            return [...otherFilters, { id: 'last_order_date', value: filterDaysAgo }];
-        }
-
-        // Otherwise, just return the filters for other columns
-        return otherFilters;
+      const otherFilters = prevFilters.filter(f => f.id !== 'last_order_date');
+  
+      if (typeof validDaysAgo === 'number' && validDaysAgo > 0) {
+        return [...otherFilters, { id: 'last_order_date', value: validDaysAgo }];
+      }
+  
+      return otherFilters;
     });
-
-  }, [filterDaysAgo]); // Re-run this effect when filterDaysAgo changes
+  }, [daysAgoQuery]);
+  
 
   // --- Column Definitions ---
   const columns = useMemo<ColumnDef<CustomerData>[]>(
