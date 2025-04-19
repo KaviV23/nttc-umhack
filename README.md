@@ -61,18 +61,6 @@ Navigate to the backend directory (if applicable) and install dependencies using
 uv pip install -r requirements.txt
 ```
 
-**Install Ollama:**
-
-Download and install Ollama for your operating system from the official website:
-[https://ollama.com](https://ollama.com)
-
-Once installed, pull the required LLM model (we use `llama3`):
-```bash
-ollama pull llama3
-```
-
-Ensure the Ollama application/server is running in the background.
-
 **Run the FastAPI Server:**
 
 ```bash
@@ -88,7 +76,7 @@ fastapi dev .\main.py --port 9000
 
 ### Back-End
 - **FastAPI** for API logic and routing
-- **Ollama** for local LLM integration
+- **Gemini Flash** for local LLM integration
 
 ### Storage
 - **PostgreSQL** for persistent relational data
@@ -96,7 +84,6 @@ fastapi dev .\main.py --port 9000
 
 ### Infrastructure
 - **Docker** to containerize services
-- **Nginx** as the reverse proxy/load balancer
 
 ---
 
@@ -104,17 +91,13 @@ fastapi dev .\main.py --port 9000
 
 <div align="center">
 
-  <p><h3>🎬 0. AI Intent Detection</h3>
+  <p><h3>🎬 1. AI Intent Detection</h3>
   "It all begins with understanding your goals. Our AI reads your intent—whether you're aiming for sales, discounts, or retention—and guides you to the right tools instantly."
   <video controls muted src="https://github.com/user-attachments/assets/8533fa88-f86e-4a34-a511-c37c18852387"></video></p>
 
-  <p><h3>🎬 1. Generate Sales Forecast</h3>
+  <p><h3>🎬 2. Generate Sales Forecast</h3>
   "Kick off your business strategy by generating AI-powered sales forecasts using synthetic data and supervised learning models. See tomorrow’s demand—today."
   <video controls muted src="https://github.com/user-attachments/assets/774d4483-ca46-4a12-bfe9-9096f57db36b"></video></p>
-
-  <p><h3>🎬 2. Plan Food Staging</h3>
-  "Turn those forecasts into action. Use predictive insights to plan food staging, tap into warehousing APIs, and boost your delivery range and customer reach."
-  <video controls muted src="https://github.com/user-attachments/assets/820e6f4c-615d-48a6-b58a-4bd3359150fd"></video></p>
 
   <p><h3>🎬 3. Identify Inactive Customers</h3>
   "Discover who hasn’t come back. Dive into backend data to find customers who’ve stopped reordering—and start planning your win-back strategy."
@@ -149,8 +132,6 @@ uv pip install -r requirements.txt
 ```bash
 uv venv --recreate
 ```
-**Check Ollama Status**
-(Ensure the Ollama application/server is running)
 
 ---
 
@@ -166,5 +147,4 @@ Make sure to follow our [contributing guidelines](./CONTRIBUTING.md) and test us
 
 Thanks to the maintainers and toolmakers across the Python and JS ecosystem. Inspired by:
 - [FastAPI](https://fastapi.tiangolo.com/)
-- [Ollama](https://ollama.com)
 - [Mantine](https://mantine.dev)
