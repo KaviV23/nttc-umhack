@@ -20,12 +20,14 @@ from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import gemini_function_declarations
 from forecasts.forecast_qty import router as forecast_qty_router, forecast_quantity, get_forecasted_quantities
 from forecasts.forecast_sales import router as forecast_sales_router, forecast_orders, calculate_total_sales
+from sql_extraction import router as sql_extraction_router, get_actual_quantities
 
 app = FastAPI()
 
 # mount our forecasting router here
 app.include_router(forecast_sales_router)
 app.include_router(forecast_qty_router)
+app.include_router(sql_extraction_router)
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -118,6 +120,33 @@ async def chat(reqBody: PromptRequest, merchant: Merchant = Depends(get_current_
                         "args": function_args,
                     },
                     "data": quantities
+                }
+
+            case "get_actual_quantities":
+                # Get actual quantities
+                actual_data = get_actual_quantities(days=function_args["days"], merchant=merchant)
+                
+                # Format the quantities into a readable string
+                quantities_text = f"Here are the actual quantities sold in the past {int(function_args['days'])} days:\n\n"
+                
+                # Get the most recent day's data
+                if actual_data["actual_quantities"]:
+                    latest_data = actual_data["actual_quantities"][0]  # First day since it's ordered DESC
+                    quantities_text += "\n".join([
+                        f"* {item_name.replace('_actual', '')}: {int(qty)} units"
+                        for item_name, qty in latest_data.items()
+                        if item_name != "order_date"
+                    ])
+                else:
+                    quantities_text += "No sales data found for this period."
+                
+                return {
+                    "response": quantities_text,
+                    "function_call": {
+                        "name": function_name,
+                        "args": function_args,
+                    },
+                    "data": actual_data
                 }
             
             # Standard response for functions in dictionary

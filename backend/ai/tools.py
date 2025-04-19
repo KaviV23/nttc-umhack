@@ -52,5 +52,21 @@ gemini_function_declarations = [
       },
       "required": ["days"]
     }
+  ),
+
+  # GrabBack: Get Actual Quantities
+  FunctionDeclaration(
+    name="get_actual_quantities",
+    description="Get actual historical quantities sold for each food item for a specific period between 1 and 30 days.",
+    parameters={
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "description": "Number of past days to retrieve data for (must be between 1 and 30)"
+        }
+      },
+      "required": ["days"]
+    }
   )
 ]
