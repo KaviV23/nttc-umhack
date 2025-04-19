@@ -152,8 +152,8 @@ def forecast_orders(merchant: Merchant = Depends(get_current_merchant)):
     })
 
     return {
-        "merchant_id": merchant_id,
-        "historical_evaluation": eval_df.to_dict(orient="records"),
+        # "merchant_id": merchant_id
+        # "historical_evaluation": eval_df.to_dict(orient="records"),
         "future_forecast": fut_df.to_dict(orient="records"),
     }
 

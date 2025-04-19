@@ -150,7 +150,7 @@ function ChatbotInterface() {
       <Stack justify="space-between" h="100%">
         {/* Scrollable message area */}
         <ScrollArea style={{ flexGrow: 1, overflow: "hidden" }} h="100%" viewportRef={viewport} type="auto">
-          <Stack p="md" gap="lg">
+          <Stack p="md" gap="lg" >
             {/* Map over messages from context */}
             {messages.map((message, index) => (
               <Paper
