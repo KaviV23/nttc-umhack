@@ -22,7 +22,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconSelector, IconChevronDown, IconChevronUp, IconSearch, IconAlertCircle, IconX, IconCircleDashedCheck } from '@tabler/icons-react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -126,6 +126,9 @@ interface CustomersPageProps {
 }
 
 const CustomersPage: React.FC<CustomersPageProps> = ({ modalOpened, openModal, closeModal }) => {
+
+  const navigate = useNavigate();
+
   // Modal State
   const [selectedRowData, setSelectedRowData] = useState<CustomerData | null>(null);
 
@@ -471,7 +474,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ modalOpened, openModal, c
             </Text>
         </Stack>
         <Group justify="center" mt="md">
-          <Button mb="lg" onClick={closeModal}>
+          <Button mb="lg" onClick={() => {closeModal(); navigate("/")}}>
             Done
           </Button>
         </Group>
