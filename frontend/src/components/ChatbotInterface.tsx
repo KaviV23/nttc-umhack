@@ -158,7 +158,7 @@ function ChatbotInterface() {
                 shadow="xs" radius="lg" p="sm" withBorder
                 style={{
                   alignSelf: message.sender === "user" ? "flex-end" : "flex-start",
-                  backgroundColor: message.sender === "user" ? theme.colors.blue[0] : theme.colors.gray[1],
+                  backgroundColor: message.sender === "user" ? theme.colors.green[0] : theme.colors.gray[1],
                   maxWidth: "80%",
                 }}
               >

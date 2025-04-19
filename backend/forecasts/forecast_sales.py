@@ -28,7 +28,7 @@ def label_deviation(pct: float) -> str:
 
 
 @router.get(
-    "/api/forecast_orders",
+    "/api/forecast_sales",
     summary="Run full preprocessing + 30‑day ARIMA/SARIMA forecast and historical evaluation"
 )
 def forecast_orders(merchant: Merchant = Depends(get_current_merchant)):

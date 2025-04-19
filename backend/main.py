@@ -18,11 +18,13 @@ from schemas.merchant import Token
 from schemas.request_bodies import LoginRequest, PromptRequest, HistoryMessage
 from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import gemini_function_declarations
+from forecasts.forecast_qty import router as forecast_qty_router
+from forecasts.forecast_sales import router as forecast_sales_router
 
 app = FastAPI()
 
 # mount our forecasting router here
-app.include_router(forecast_router)
+app.include_router(forecast_sales_router)
 app.include_router(forecast_qty_router)
 
 load_dotenv()
