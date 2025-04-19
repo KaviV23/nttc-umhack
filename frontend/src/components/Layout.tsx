@@ -2,6 +2,7 @@ import { Outlet, NavLink as RouterNavLink } from 'react-router-dom';
 import { AppShell, Burger, Group, NavLink, Text, Button, Title, Box, useMantineTheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks'; // Hook for toggle state
 import ChatbotInterface from './ChatbotInterface';
+import { ChatHistoryProvider } from '../contexts/ChatHistoryContext';
 
 // Define navigation links data
 const navLinks = [
@@ -50,7 +51,7 @@ function Layout() {
     >
       {/* Header (Optional but good for mobile nav toggle) */}
       <AppShell.Header>
-        <Group h="100%" px="md" justify="space-between">
+        <Group h="100%" px="md" justify="space-between" >
           <Box>
             <Burger
               opened={mobileNavOpened}
@@ -89,7 +90,9 @@ function Layout() {
             >
               <Title order={2}>AI Assistant</Title>
             </Group>
-            <ChatbotInterface />
+            <ChatHistoryProvider>
+              <ChatbotInterface />
+            </ChatHistoryProvider>
           </Box>
         )}
       </AppShell.Aside>

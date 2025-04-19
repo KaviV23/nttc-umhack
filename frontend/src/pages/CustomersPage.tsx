@@ -17,10 +17,11 @@ import {
   rem,
   Loader,
   Alert,
-  NumberInput, 
+  NumberInput,
+  Checkbox, 
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSelector, IconChevronDown, IconChevronUp, IconSearch, IconAlertCircle, IconX } from '@tabler/icons-react';
+import { IconSelector, IconChevronDown, IconChevronUp, IconSearch, IconAlertCircle, IconX, IconCircleDashedCheck } from '@tabler/icons-react';
 import { useSearchParams } from 'react-router-dom';
 import {
   useReactTable,
@@ -117,7 +118,6 @@ const filterByDaysAgo: FilterFn<CustomerData> = (
   return date.isAfter(thresholdDate) && date.isBefore(today.endOf('day'));
 };
 // --- End Custom Filter Function ---
-
 
 const CustomersPage: React.FC = () => {
   // Modal State
@@ -243,17 +243,21 @@ const CustomersPage: React.FC = () => {
         enableSorting: false,
         enableColumnFilter: false,
         cell: ({ row }) => (
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => {
-              setSelectedRowData(row.original);
-              openModal();
-            }}
-            disabled={isLoading}
-          >
-            Generate Email
-          </Button>
+          // <Button
+          //   variant="outline"
+          //   size="xs"
+          //   onClick={() => {
+          //     setSelectedRowData(row.original);
+          //     openModal();
+          //   }}
+          //   disabled={isLoading}
+          // >
+          //   Generate Email
+          // </Button>
+          <Checkbox 
+            mx="auto"
+            checked={true}
+          />
         ),
       },
     ],
@@ -449,55 +453,21 @@ const CustomersPage: React.FC = () => {
       <Modal
         opened={modalOpened}
         onClose={closeModal}
-        title={<Title order={3}>Email Preview for User ID: {selectedRowData?.customer_id}</Title>}
         centered
-        size="lg"
+        size="md"
       >
          {/* Modal content remains the same */}
-         <Stack gap="md">
-            <Text>
-                This is a preview of the AI-generated email for User ID{' '}
-                <Text span fw={700}>{selectedRowData?.customer_id}</Text>.
-            </Text>
-            <Text>
-                Based on their last order on{' '}
-                <Text span fw={700}>
-                    {selectedRowData?.last_order_date ? dayjs(selectedRowData.last_order_date).format('YYYY-MM-DD HH:mm') : 'N/A'}
-                </Text>
-                {' '}and their favourite food,{' '}
-                 <Text span fw={700}>{selectedRowData?.favorite_food}</Text>,
-                 the AI would generate a personalized message here.
-            </Text>
-            <Text fs="italic" c="dimmed">
-                [Dummy AI Generated Email Content Placeholder]
-                <br /><br />
-                Subject: We miss your {selectedRowData?.favorite_food}!
-                <br /><br />
-                Hi Customer {selectedRowData?.customer_id},
-                <br /><br />
-                We noticed you haven't ordered since {selectedRowData?.last_order_date ? dayjs(selectedRowData.last_order_date).format('YYYY-MM-DD') : 'a while'}. We miss seeing you!
-                <br /><br />
-                We know you love our {selectedRowData?.favorite_food}. How about coming back to enjoy it again soon?
-                <br /><br />
-                [Include a potential offer or new item related to {selectedRowData?.favorite_food} here.]
-                <br /><br />
-                Looking forward to serving you again!
-                <br /><br />
-                Best regards,
-                <br />
-                [Your Company Name]
+         <Stack gap="md" align='center'>
+            <IconCircleDashedCheck color="limegreen" size={150}>
+
+            </IconCircleDashedCheck>
+            <Text ta="center">
+                Email Sent!
             </Text>
         </Stack>
-        <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={closeModal}>
-            Cancel
-          </Button>
-          <Button onClick={() => {
-             console.log("Simulating sending email for:", selectedRowData);
-             alert(`Simulating email sent to User ID: ${selectedRowData?.customer_id}`);
-             closeModal();
-          }}>
-            Send Email
+        <Group justify="center" mt="md">
+          <Button mb="lg" onClick={closeModal}>
+            Done
           </Button>
         </Group>
       </Modal>

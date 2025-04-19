@@ -1,7 +1,13 @@
+from typing import List, Literal
 from pydantic import BaseModel
+
+class HistoryMessage(BaseModel):
+    sender: Literal['user', 'bot'] # Use Literal for specific values
+    text: str
 
 class PromptRequest(BaseModel): 
     message: str
+    history: List[HistoryMessage]
 
 class LoginRequest(BaseModel):
     merchant_id: str

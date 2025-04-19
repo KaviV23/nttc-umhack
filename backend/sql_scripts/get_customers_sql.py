@@ -1,5 +1,5 @@
 def get_customers_sql(merchant_id):
-  return f'''-- Replace 'M1234' with the desired merchant ID
+  return f'''
 WITH customer_orders AS (
     SELECT
         td.eater_id,
