@@ -1,3 +1,4 @@
+import json
 import os
 from fastapi import Depends, FastAPI, HTTPException
 from dotenv import load_dotenv
@@ -11,7 +12,7 @@ from auth.dependencies import get_current_merchant
 from db.dependencies import get_db
 from models.merchant import Merchant
 from schemas.merchant import Token
-from schemas.request_bodies import LoginRequest, PromptRequest, HistoryMessage
+from schemas.request_bodies import InsightsRequest, LoginRequest, PromptRequest, HistoryMessage
 from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import gemini_function_declarations
 from forecasts.forecast_qty import router as forecast_qty_router, forecast_quantity, get_forecasted_quantities
@@ -351,3 +352,108 @@ async def get_customers(
     except Exception as e:
          print(f"Error in get_customers: {e}")
          raise HTTPException(status_code=500, detail="Failed to retrieve customer data.")
+
+# --- NEW ENDPOINT FOR CHART INSIGHTS ---
+@app.post("/api/generate_insights")
+async def generate_insights(
+    reqBody: InsightsRequest, # Use the existing schema
+    merchant: Merchant = Depends(get_current_merchant) # Require authentication
+):
+    """
+    Generates AI-powered insights based on provided chart data.
+    """
+    # 1. Configuration Check
+    if not GEMINI_API_KEY:
+         print("Error: Gemini API Key not configured for /api/generate_insights.")
+         raise HTTPException(status_code=500, detail="AI service is not configured.")
+
+    # 2. Validate Input Data (Basic Check)
+    if not reqBody.chart_data:
+        print(f"Warning: Empty chart_data received for '{reqBody.chart_title}' from merchant {merchant.merchant_id}.")
+        # Return a specific message instead of calling LLM with no data
+        return {"insight": "No data provided for analysis."}
+        # Or raise HTTPException(status_code=400, detail="chart_data cannot be empty.")
+
+    # 3. Initialize Gemini Model (Simpler config for direct generation)
+    try:
+        # Use a model suitable for text generation/analysis.
+        # No tools or complex system prompt needed here usually.
+        insightModel = genai.GenerativeModel(model_name="gemini-1.5-flash-latest") # Or "gemini-pro"
+    except Exception as e:
+        print(f"Error creating Gemini Model for insights: {e}")
+        raise HTTPException(status_code=500, detail="AI service initialization failed.")
+
+    # 4. Construct the Prompt
+    try:
+        # Convert chart data to a pretty-printed JSON string for the prompt
+        data_string = json.dumps(reqBody.chart_data, indent=2)
+
+        # Limit data string length if necessary to avoid exceeding token limits
+        max_data_length = 4000 # Example limit, adjust as needed
+        if len(data_string) > max_data_length:
+            data_string = data_string[:max_data_length] + "\n... (data truncated)"
+            print(f"Warning: Chart data for '{reqBody.chart_title}' truncated for prompt.")
+
+        # Craft the prompt
+        prompt = f"""Analyze the following data for the chart titled "{reqBody.chart_title}" displayed on a business dashboard for merchant ID '{merchant.merchant_id}'.
+
+Provide 2-3 concise bullet points summarizing the most important insights, trends, or anomalies found in the data. Focus on information that would be actionable or noteworthy for the business owner.
+
+Data:
+{data_string}
+
+Insights:
+"""
+        print(f"--- Generating Insight Prompt for: {reqBody.chart_title} ---")
+        # print(prompt) # Uncomment to debug the exact prompt being sent
+        print("--- End Prompt ---")
+
+    except Exception as e:
+        print(f"Error formatting data for prompt: {e}")
+        raise HTTPException(status_code=500, detail="Error processing chart data for AI analysis.")
+
+
+    # 5. Call Gemini API
+    try:
+        print(f"Sending insight generation request to Gemini for '{reqBody.chart_title}'...")
+        # Use generate_content_async for a single-turn request
+        geminiResponse = await insightModel.generate_content_async(prompt)
+        print(f"Received insight response from Gemini for '{reqBody.chart_title}'.")
+
+        # 6. Process Response
+        generated_text = ""
+        # Safer access and check for blocked content
+        if geminiResponse.candidates:
+            candidate = geminiResponse.candidates[0]
+            if candidate.content and candidate.content.parts:
+                generated_text = candidate.content.parts[0].text.strip()
+            # Check for finish reason (e.g., safety block)
+            finish_reason = getattr(candidate, 'finish_reason', None)
+            if finish_reason and finish_reason != 1: # 1 is typically "STOP" (successful completion)
+                 print(f"Warning: Gemini response finish reason for '{reqBody.chart_title}' was {finish_reason}.")
+                 # Check safety ratings if available
+                 safety_ratings = getattr(candidate, 'safety_ratings', [])
+                 if any(rating.probability > 3 for rating in safety_ratings): # Example: Check if probability > MEDIUM
+                     raise HTTPException(status_code=400, detail="Insight generation blocked due to safety concerns.")
+
+        if not generated_text:
+             print(f"Warning: Empty insight generated for '{reqBody.chart_title}'. Response: {geminiResponse}")
+             # Check prompt feedback for block reason
+             block_reason = getattr(geminiResponse, 'prompt_feedback', {}).get('block_reason', 'None')
+             if block_reason != 'None':
+                  detail_msg = f"Insight generation failed or was blocked (Reason: {block_reason})."
+                  raise HTTPException(status_code=503, detail=detail_msg)
+             else:
+                  raise HTTPException(status_code=503, detail="AI failed to generate an insight from the provided data.")
+
+
+        print(f"Generated Insight:\n{generated_text}")
+        return {"insight": generated_text}
+
+    except HTTPException as http_exc:
+         # Re-raise HTTP exceptions to be handled by FastAPI
+         raise http_exc
+    except Exception as e:
+        print(f"Error during Gemini insight generation for '{reqBody.chart_title}': {type(e).__name__} - {e}")
+        # Provide a generic error to the client
+        raise HTTPException(status_code=503, detail=f"AI service communication error during insight generation: {getattr(e, 'message', str(e))}")

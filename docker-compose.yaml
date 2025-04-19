@@ -1,0 +1,45 @@
+services:
+  pgadmin:
+    image: dpage/pgadmin4:9.2.0
+    container_name: pgadmin-nttc
+    ports:
+      - "2345:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: nttc@fakemail123.com
+      PGADMIN_DEFAULT_PASSWORD: Nttc1234
+    restart: unless-stopped
+  postgres:
+    build: ./db/postgres
+    container_name: postgres-nttc
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_PASSWORD: nttc4
+    restart: unless-stopped
+  frontend:
+    build: ./frontend
+    container_name: frontend_nttc
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:9000
+    restart: unless-stopped
+    depends_on:
+      - backend
+  backend:
+    build: ./backend
+    container_name: backend_nttc
+    ports:
+      - "9000:9000"
+    environment:
+      - GEMINI_API_KEY=
+      - DB_USER=postgres
+      - DB_PASS=nttc4
+      - DB_HOST=postgres
+      - DB_NAME=postgres
+      - JWT_SECRET_KEY=
+    restart: unless-stopped
+    depends_on:
+      - postgres
