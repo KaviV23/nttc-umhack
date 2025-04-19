@@ -1,4 +1,4 @@
-import { Text, Paper, Title, SimpleGrid, useMantineTheme, Box } from '@mantine/core';
+import { Text, Paper, Title, SimpleGrid, useMantineTheme, Box, Group } from '@mantine/core';
 import dayjs from 'dayjs';
 // Import customParseFormat plugin for dayjs if parsing 'YYYY-MM'
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -84,15 +84,14 @@ function DashboardPage() {
     const [forecastSalesQuantityKeys, setForecastSalesQuantityKeys] = useState<string[]>();
     // Correct type for itemSales state based on how it's populated
     const [itemSales, setItemSales] = useState<ChartItemSalePoint[]>([]); // Use ChartItemSalePoint[]
+    const [totalSales, setTotalSales] = useState<number>(0)
 
     // *** ADD STATE FOR MONTHLY SALES CHART ***
     const [chartMonthlySalesData, setChartMonthlySalesData] = useState<ChartMonthlySalePoint[]>([]); // Initialize as empty array
 
 
     const getThemeColor = (colorName: string) => theme.colors[colorName]?.[6] || theme.primaryColor;
-    // const pieChartColors = PIE_COLORS.map(colorName => getThemeColor(colorName)); // Keep if pie chart is added later
 
-    // --- useEffect Hook ---
     useEffect(() => {
 
         // Function to create headers (avoids repetition)
@@ -164,6 +163,12 @@ function DashboardPage() {
                      });
                 }
                 setItemSales(res); // Update state with correctly typed array
+                let sumSales = 0;
+                res.forEach((item) => {
+                  sumSales += item.sales
+                })
+                console.log(res);
+                setTotalSales(sumSales);
             } catch (error) {
                 console.error("Failed to fetch item sales:", error);
             }
@@ -255,7 +260,7 @@ function DashboardPage() {
                      formatter={(value: number) => [`$${value.toLocaleString()}`, "Sales"]}
                  />
                  <Legend />
-                 <Bar dataKey="sales" fill={getThemeColor("teal")} radius={[0, 4, 4, 0]} />
+                 <Bar dataKey="sales" fill={getThemeColor("green")} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
@@ -265,10 +270,9 @@ function DashboardPage() {
             <Title order={4} mb="md">
               This Month's Sales
             </Title>
-            <Text size='60px' ta="center" mt="lg">
-                {/* Find sales for current month from fetched data */}
-                ${chartMonthlySalesData.find(d => d.month === dayjs().format('MMM'))?.sales.toLocaleString() ?? 'N/A'}
-            </Text>
+            <Group justify="center" h="80%">
+              <Text size='48px' ta="center" fw="bold" c="dark"><span style={{color: totalSales > 60000 ? "#40c057" : "orange"}}>RM {totalSales}</span>/<br/>60000.00</Text>
+            </Group>
           </Paper>
         </SimpleGrid>
 
