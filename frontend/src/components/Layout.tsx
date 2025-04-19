@@ -2,6 +2,7 @@ import { Outlet, NavLink as RouterNavLink } from 'react-router-dom';
 import { AppShell, Burger, Group, NavLink, Text, Button, Title, Box, useMantineTheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks'; // Hook for toggle state
 import ChatbotInterface from './ChatbotInterface';
+import { ChatHistoryProvider } from '../contexts/ChatHistoryContext';
 
 // Define navigation links data
 const navLinks = [
@@ -10,7 +11,7 @@ const navLinks = [
   // Add more links here
 ];
 
-function Layout() {
+function Layout({ openModal }) {
   // State for mobile navigation burger menu
   const [mobileNavOpened, { toggle: toggleMobileNav }] = useDisclosure();
   // State for the right collapsible sidebar (Aside)
@@ -36,7 +37,6 @@ function Layout() {
   return (
     <AppShell
       padding="md"
-      w="1400px"
       header={{ height: 60 }}
       navbar={{
         width: 250, // Width of the left sidebar
@@ -59,11 +59,12 @@ function Layout() {
               hiddenFrom="sm" // Hide burger on larger screens
               size="sm"
             />
-            <Title order={3}>Grab Merchant</Title>
+            {/* <Title order={3} c="green">GrabEx</Title> */}
+            <img src='/logo.png' height="30px" />
           </Box>
           <Box>
             <Button onClick={toggleAside} variant="light">
-              {asideOpened ? "Stop" : "Start"} AI
+              {asideOpened ? "Dismiss MEX" : "Chat with MEX"}
             </Button>
           </Box>
           {/* You can add more header content here */}
@@ -71,7 +72,7 @@ function Layout() {
       </AppShell.Header>
 
       {/* Left Sidebar (Navbar) */}
-      <AppShell.Navbar p="md">
+      <AppShell.Navbar p="md" bg="#eaeff2">
         <Text fw={500} mb="sm">
           Navigation
         </Text>
@@ -82,15 +83,19 @@ function Layout() {
       <AppShell.Aside >
         {/* Content only shows when aside is open */}
         {asideOpened && (
-          <Box h="93%">
+          <Box h="91%" >
             <Group
               justify="space-between"
               p="md"
               style={{ borderBottom: `1px solid ${theme.colors.gray[3]}` }}
             >
-              <Title order={2}>AI Assistant</Title>
-            </Group>
-            <ChatbotInterface />
+              <Title order={2} c="green">MEX Assistant</Title>
+            </Group >
+            <ChatHistoryProvider>
+              <ChatbotInterface
+                openModal={openModal}
+              />
+            </ChatHistoryProvider>
           </Box>
         )}
       </AppShell.Aside>

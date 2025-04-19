@@ -1,8 +1,0 @@
-python3 -m vllm.entrypoints.openai.api_server \
-  --model TheBloke/TinyLlama-1.1B-Chat-v0.3-AWQ \
-  --dtype float16 \
-  --chat-template "{%- for message in messages %}
-<|im_start|>{{ message.role }}
-{{ message.content }}<|im_end|>
-{%- endfor %}
-<|im_start|>assistant"

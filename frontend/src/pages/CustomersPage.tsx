@@ -1,157 +1,486 @@
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-    Table,
-    Title,
-    Button,
-    SegmentedControl,
-    Stack,
-    Group,
-    Text,
-    ScrollArea, // Use ScrollArea for better table handling if needed
+  Table,
+  ScrollArea,
+  Group,
+  Text,
+  Pagination,
+  TextInput,
+  Button,
+  Modal,
+  Stack,
+  Title,
+  UnstyledButton,
+  Center,
+  Select,
+  Box,
+  rem,
+  Loader,
+  Alert,
+  NumberInput,
+  Checkbox, 
 } from '@mantine/core';
-import { useMemo } from 'react';
+import { useDisclosure } from '@mantine/hooks';
+import { IconSelector, IconChevronDown, IconChevronUp, IconSearch, IconAlertCircle, IconX, IconCircleDashedCheck } from '@tabler/icons-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+  type PaginationState,
+  type ColumnFiltersState,
+  type FilterFn,
+  type Row,
+} from '@tanstack/react-table';
+import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
 
-// --- Constants and Data (Paste the date/customer definitions from above here) ---
+dayjs.extend(isBetween);
+// Simulated "current" date for demo purposes
+const SIMULATED_TODAY = dayjs('2023-12-31'); // Pick your demo date here
+const getToday = () => SIMULATED_TODAY
 
-// Define the "current" date as per the requirement
-const CURRENT_DATE = new Date('2025-12-04T00:00:00Z');
+// Define the structure of data rows
+interface CustomerData {
+  customer_id: number;
+  last_order_date: string;
+  favorite_food: string;
+}
 
-// Calculate the cutoff date (one month before)
-const CUTOFF_DATE = new Date(CURRENT_DATE);
-CUTOFF_DATE.setMonth(CURRENT_DATE.getMonth() - 1);
+// Define the expected structure of API response
+interface ApiResponse {
+    results: CustomerData[];
+}
 
-// Helper to format dates nicely
-const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    });
+// Helper component for Table Headers
+interface ThProps {
+  children: React.ReactNode;
+  reversed?: boolean;
+  sorted?: boolean;
+  onSort(): void;
+  canSort: boolean;
+}
+
+function Th({ children, reversed, sorted, onSort, canSort }: ThProps) {
+  const Icon = sorted ? (reversed ? IconChevronUp : IconChevronDown) : IconSelector;
+  return (
+    <Table.Th>
+      <UnstyledButton onClick={canSort ? onSort : undefined} style={{ display: 'flex', alignItems: 'center', width: '100%' }} disabled={!canSort}>
+        <Group justify="space-between" style={{ flexGrow: 1 }}>
+          <Text fw={500} fz="sm">
+            {children}
+          </Text>
+          {canSort && (
+            <Center>
+              <Icon style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
+            </Center>
+          )}
+        </Group>
+      </UnstyledButton>
+    </Table.Th>
+  );
+}
+
+
+// --- Filter Function for Date Range ---
+// This filter function checks if the row's date is within the last 'X' days
+const filterByDaysAgo: FilterFn<CustomerData> = (
+  row: Row<CustomerData>,
+  columnId: string,
+  filterValue: number // Expecting the number of days
+) => {
+  if (typeof filterValue !== 'number' || filterValue <= 0) {
+    return true; // If filter value is invalid or not set, don't filter out the row
+  }
+
+  const rowValue = row.getValue(columnId);
+  if (!rowValue) {
+    return false; // If the row doesn't have a date, filter it out
+  }
+
+  const date = dayjs(rowValue as string);
+  if (!date.isValid()) {
+    return false; // If the date is invalid, filter it out
+  }
+
+  // -- REAL DATE --
+  //const today = dayjs();
+  // -- FAKE DATE FOR DEMO PURPOSES
+  const today = getToday();
+  const thresholdDate = today.subtract(filterValue, 'day').startOf('day'); // Go back X days, compare from start of that day
+
+  // Check if the row's date is between the threshold date and today (inclusive of today)
+  return date.isAfter(thresholdDate) && date.isBefore(today.endOf('day'));
 };
+// --- End Custom Filter Function ---
 
-interface Customer {
-    id: number;
-    name: string;
-    lastOrderDate: Date;
-    favoriteFood: string;
+interface CustomersPageProps {
+  modalOpened: boolean;
+  openModal: () => void;
+  closeModal: () => void;
 }
 
-const dummyCustomers: Customer[] = [
-    // Customers with orders MORE than a month ago (inactive)
-    { id: 1, name: 'Alice Smith', lastOrderDate: new Date('2025-10-15T10:00:00Z'), favoriteFood: 'Pizza' },
-    { id: 2, name: 'Bob Johnson', lastOrderDate: new Date('2025-09-01T14:30:00Z'), favoriteFood: 'Tacos' },
-    { id: 3, name: 'Charlie Brown', lastOrderDate: new Date('2025-10-30T08:15:00Z'), favoriteFood: 'Sushi' },
-    { id: 7, name: 'Grace Hall', lastOrderDate: new Date('2025-06-20T11:00:00Z'), favoriteFood: 'Salad' },
-    // Customers with orders WITHIN the last month (active)
-    { id: 4, name: 'Diana Prince', lastOrderDate: new Date('2025-11-10T12:00:00Z'), favoriteFood: 'Burgers' },
-    { id: 5, name: 'Ethan Hunt', lastOrderDate: new Date('2025-11-28T18:00:00Z'), favoriteFood: 'Pasta' },
-    { id: 6, name: 'Fiona Glenanne', lastOrderDate: new Date('2025-12-01T09:45:00Z'), favoriteFood: 'Curry' },
-    { id: 8, name: 'Henry Jones', lastOrderDate: new Date('2025-11-05T16:20:00Z'), favoriteFood: 'Steak' },
-    { id: 9, name: 'Ivy Green', lastOrderDate: new Date('2025-11-18T13:00:00Z'), favoriteFood: 'Ramen' },
-    { id: 10, name: 'Jack Ryan', lastOrderDate: new Date('2025-12-03T20:00:00Z'), favoriteFood: 'Fish & Chips' },
-];
+const CustomersPage: React.FC<CustomersPageProps> = ({ modalOpened, openModal, closeModal }) => {
 
-// --- Component ---
+  const navigate = useNavigate();
 
-function CustomersPage() {
-    const [searchParams, setSearchParams] = useSearchParams();
+  // Modal State
+  const [selectedRowData, setSelectedRowData] = useState<CustomerData | null>(null);
 
-    // Get the current filter value from URL, default to 'all'
-    const currentFilter = searchParams.get('filter') || 'all'; // 'all' or 'inactive'
+  // Data Fetching State
+  const [data, setData] = useState<CustomerData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    // Filter the customers based on the URL parameter
-    // useMemo prevents recalculating on every render unless dependencies change
-    const filteredCustomers = useMemo(() => {
-        if (currentFilter === 'inactive') {
-            // Keep customers whose last order date is BEFORE the cutoff date
-            return dummyCustomers.filter(customer => customer.lastOrderDate < CUTOFF_DATE);
+  // TanStack Table State
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]); // State for column filters
+  // URL Query Filtering
+  const [searchParams, setSearchParams] = useSearchParams();
+  const daysAgoQuery = searchParams.get('daysAgo');
+  const [filterDaysAgo, setFilterDaysAgoState] = useState<number | ''>(() => {
+    const num = daysAgoQuery ? parseInt(daysAgoQuery, 10) : NaN;
+    return !isNaN(num) && num > 0 ? num : '';
+  });
+
+  const setFilterDaysAgo = (value: number | '') => {
+    setFilterDaysAgoState(value);
+  
+    if (typeof value === 'number' && value > 0) {
+      searchParams.set('daysAgo', value.toString());
+    } else {
+      searchParams.delete('daysAgo');
+    }
+  
+    setSearchParams(searchParams);
+  };
+  
+  
+
+  // --- Data Fetching Logic
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/getCustomersByMerchant`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `bearer ${localStorage.getItem("access_token")}`,
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        // Otherwise (filter is 'all' or unrecognized), show all customers
-        return dummyCustomers;
-    }, [currentFilter]); // Dependency: recalculate when filter changes
-
-    // Handler for filter change
-    const handleFilterChange = (value: string) => {
-        if (value === 'all') {
-            // Remove the filter param for 'all' to keep URL cleaner
-            setSearchParams({});
-        } else {
-            setSearchParams({ filter: value });
-        }
+        const result: ApiResponse = await response.json();
+        setData(result.results || []);
+      } catch (e) {
+        console.error("Failed to fetch customer data:", e);
+        setError("Failed to load customer data. Please try again later.");
+        setData([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
+    fetchData();
+  }, []);
 
-    // Function for the dummy button action
-    const handleGenerateEmail = (customerName: string) => {
-        console.log(`Generating email for: ${customerName}`);
-        // In a real app, this would trigger an API call or modal, etc.
-        alert(`Placeholder: Generate email for ${customerName}`);
-    };
+  // --- Effect to Update Column Filters based on filterDaysAgo ---
+  useEffect(() => {
+    const num = daysAgoQuery ? parseInt(daysAgoQuery, 10) : NaN;
+    const validDaysAgo = !isNaN(num) && num > 0 ? num : '';
+  
+    setFilterDaysAgoState(validDaysAgo);
+  
+    setColumnFilters(prevFilters => {
+      const otherFilters = prevFilters.filter(f => f.id !== 'last_order_date');
+  
+      if (typeof validDaysAgo === 'number' && validDaysAgo > 0) {
+        return [...otherFilters, { id: 'last_order_date', value: validDaysAgo }];
+      }
+  
+      return otherFilters;
+    });
+  }, [daysAgoQuery]);
+  
 
-    // Map filtered data to Table Rows
-    const rows = filteredCustomers.map((customer) => (
-        <Table.Tr key={customer.id}>
-            <Table.Td>{customer.name}</Table.Td>
-            <Table.Td>{formatDate(customer.lastOrderDate)}</Table.Td>
-            <Table.Td>{customer.favoriteFood}</Table.Td>
-            <Table.Td>
-                <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => handleGenerateEmail(customer.name)}
-                >
-                    Generate email
-                </Button>
-            </Table.Td>
-        </Table.Tr>
-    ));
+  // --- Column Definitions ---
+  const columns = useMemo<ColumnDef<CustomerData>[]>(
+    () => [
+      {
+        accessorKey: 'customer_id',
+        header: 'User ID',
+        enableSorting: true,
+        enableColumnFilter: false, // Disable default column filter UI for this
+      },
+      {
+        accessorKey: 'last_order_date',
+        header: 'Last Order Date',
+        cell: info => {
+            const dateValue = info.getValue<string>();
+            return dateValue ? dayjs(dateValue).format('YYYY-MM-DD HH:mm') : 'N/A';
+        },
+        enableSorting: true,
+        filterFn: filterByDaysAgo, // Assign the custom filter function
+        enableColumnFilter: true, // Enable column filtering logic for this column
+        // Disable the default UI filter input provided by some table libs if needed
+        // enableGlobalFilter: false // Already set
+      },
+      {
+        accessorKey: 'favorite_food',
+        header: 'Favourite Food',
+        enableSorting: true,
+        enableColumnFilter: false,
+      },
+      {
+        id: 'actions',
+        header: 'Action',
+        enableSorting: false,
+        enableColumnFilter: false,
+        cell: ({ row }) => (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => {
+              // setSelectedRowData(row.original);
+              openModal();
+            }}
+            disabled={isLoading}
+          >
+            Generate Email
+          </Button>
+          // <Checkbox 
+          //   mx="auto"
+          //   checked={true}
+          // />
+        ),
+      },
+    ],
+    [openModal, isLoading]
+  );
 
-    return (
-        <Stack gap="lg"> {/* Use Stack for vertical layout */}
-            <Title order={1}>Customers</Title>
+  // --- TanStack Table Instance ---
+  const table = useReactTable({
+    data,
+    columns,
+    filterFns: {
+      // You *could* register the filterFn here globally if used in many places
+      // filterByDaysAgo: filterByDaysAgo, // But defining it directly on the column is fine too
+    },
+    state: {
+      sorting,
+      globalFilter,
+      pagination,
+      columnFilters,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
 
-            {/* // comment out filter control for now
-            <Group> 
-                <SegmentedControl
-                    value={currentFilter}
-                    onChange={handleFilterChange}
-                    data={[
-                        { label: 'All Customers', value: 'all' },
-                        { label: 'Inactive (No Order in 1 Month+)', value: 'inactive' },
-                    ]}
-                />
-            </Group>
-            */}
+  const pageCount = table.getPageCount();
+  const currentPage = table.getState().pagination.pageIndex + 1;
 
-            {/* Wrap table in ScrollArea if it might get wide or very long */}
-            {/* <ScrollArea> */}
-                <Table striped highlightOnHover withTableBorder withColumnBorders>
-                    <Table.Thead>
-                        {/* Optional: Add stickyHeader for long tables */}
-                        {/* <Table.Thead style={{ position: 'sticky', top: 0, background: 'white', zIndex: 1 }}> */}
-                        <Table.Tr>
-                            <Table.Th>Name</Table.Th>
-                            <Table.Th>Last Order Date</Table.Th>
-                            <Table.Th>Favorite Food</Table.Th>
-                            <Table.Th>Actions</Table.Th>
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {rows.length > 0 ? (
-                            rows
-                        ) : (
-                            <Table.Tr>
-                                <Table.Td colSpan={4}>
-                                    <Text ta="center" c="dimmed" py="md">
-                                        No customers match the current filter.
-                                    </Text>
-                                </Table.Td>
-                            </Table.Tr>
-                        )}
-                    </Table.Tbody>
-                </Table>
-            {/* </ScrollArea> */}
+  // Handler to clear the date filter
+  const clearDateFilter = () => {
+      setFilterDaysAgo('');
+  };
+
+  // --- Render Logic ---
+  return (
+    <Box>
+      <Title order={2}>Customer Data</Title>
+      <Text mb="md">As of {getToday().toString()}</Text>
+
+      {/* Filter Controls */}
+      <Group mb="md" align="flex-end">
+        {/* Global Text Filter */}
+        <TextInput
+            label="Search All"
+            placeholder="Search ID, food..."
+            leftSection={<IconSearch style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
+            value={globalFilter ?? ''}
+            onChange={(event) => setGlobalFilter(event.currentTarget.value)}
+            style={{ flexGrow: 1, minWidth: rem(200) }}
+            disabled={isLoading || !!error}
+        />
+        {/* Programmatic Date Filter Input */}
+        <NumberInput
+            label="Last Order Within (Days)"
+            placeholder="e.g., 30"
+            value={filterDaysAgo}
+            onChange={setFilterDaysAgo} // Directly set the state
+            min={1} // Optional: minimum days
+            step={1}
+            allowDecimal={false}
+            disabled={isLoading || !!error}
+            style={{ width: rem(200) }}
+            rightSection={
+                filterDaysAgo ? (
+                    <UnstyledButton onClick={clearDateFilter} aria-label="Clear date filter">
+                         <IconX style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
+                    </UnstyledButton>
+                ) : null
+            }
+            rightSectionPointerEvents="all"
+        />
+      </Group>
+
+
+      {/* Display Error Alert */}
+      {error && (
+        <Alert title="Error" color="red" icon={<IconAlertCircle />} mb="md">
+          {error}
+        </Alert>
+      )}
+
+      {/* Table Area */}
+      <ScrollArea>
+        <Table miw={700} striped highlightOnHover withTableBorder withColumnBorders verticalSpacing="sm">
+           <Table.Thead>
+              {/* Header rendering remains the same */}
+              {table.getHeaderGroups().map((headerGroup) => (
+                <Table.Tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <Th
+                      key={header.id}
+                      sorted={header.column.getIsSorted() === 'asc'}
+                      reversed={header.column.getIsSorted() === 'desc'}
+                      onSort={header.column.getToggleSortingHandler()}
+                      canSort={header.column.getCanSort() && !isLoading && !error}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </Th>
+                  ))}
+                </Table.Tr>
+              ))}
+            </Table.Thead>
+            <Table.Tbody>
+              {/* Loading State */}
+              {isLoading && (
+                <Table.Tr>
+                  <Table.Td colSpan={columns.length} style={{ textAlign: 'center' }}>
+                    <Loader size="md" />
+                    <Text mt="sm">Loading data...</Text>
+                  </Table.Td>
+                </Table.Tr>
+              )}
+
+              {/* No Data / Filtered Out Message */}
+              {!isLoading && !error && table.getRowModel().rows.length === 0 && (
+                 <Table.Tr>
+                   <Table.Td colSpan={columns.length} style={{ textAlign: 'center' }}>
+                     {data.length === 0
+                       ? "No customer data available."
+                       : "No customers found matching your filter criteria." // Generic message for any filter
+                     }
+                   </Table.Td>
+                 </Table.Tr>
+              )}
+
+              {/* Render Table Rows */}
+              {!isLoading && !error && table.getRowModel().rows.length > 0 && (
+                table.getRowModel().rows.map((row) => (
+                  <Table.Tr key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <Table.Td key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </Table.Td>
+                    ))}
+                  </Table.Tr>
+                ))
+              )}
+            </Table.Tbody>
+        </Table>
+      </ScrollArea>
+
+      {/* Pagination Controls */}
+      {/* Only show pagination if not loading, no error, and there's data */}
+      {!isLoading && !error && data.length > 0 && (
+          <Group justify="space-between" align="center" mt="md">
+             {/* Row count display */}
+             <Text size="sm">
+                Showing{' '}
+                {table.getRowModel().rows.length > 0 ? table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1 : 0}
+                {' '}-{' '}
+                {Math.min(
+                    (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                    table.getFilteredRowModel().rows.length // Count based on filtered rows
+                )}
+                {' '}of {table.getFilteredRowModel().rows.length} customers
+            </Text>
+            {/* Rows per page + Pagination */}
+             <Group>
+                <Text size="sm">Rows per page:</Text>
+                 <Select
+                     style={{width: rem(80)}}
+                     value={String(table.getState().pagination.pageSize)}
+                     onChange={(value) => {
+                        if (value) {
+                            table.setPageSize(Number(value));
+                        }
+                     }}
+                     data={['5', '10', '20', '50', '100']}
+                     allowDeselect={false}
+                     disabled={table.getFilteredRowModel().rows.length <= 5} // Example: disable if not enough rows
+                 />
+                 <Pagination
+                    total={pageCount}
+                    value={currentPage}
+                    onChange={(page) => table.setPageIndex(page - 1)}
+                    disabled={pageCount <= 1}
+                    />
+             </Group>
+          </Group>
+      )}
+
+      {/* Email Preview Modal */}
+      <Modal
+        opened={modalOpened}
+        onClose={closeModal}
+        centered
+        size="md"
+      >
+         {/* Modal content remains the same */}
+         <Stack gap="md" align='center'>
+            <IconCircleDashedCheck color="limegreen" size={150}>
+
+            </IconCircleDashedCheck>
+            <Text ta="center">
+                Emails Sent!
+            </Text>
         </Stack>
-    );
-}
+        <Group justify="center" mt="md">
+          <Button mb="lg" onClick={() => {closeModal(); navigate("/")}}>
+            Done
+          </Button>
+        </Group>
+      </Modal>
+    </Box>
+  );
+};
 
 export default CustomersPage;
