@@ -24,7 +24,7 @@ interface ApiResponse {
     }
 }
 
-function ChatbotInterface() {
+function ChatbotInterface({openModal}) {
     const theme = useMantineTheme();
     const { messages, addMessage, setMessages } = useChatHistory(); // Use context
     const [currentInput, setCurrentInput] = useState('');
@@ -89,7 +89,8 @@ function ChatbotInterface() {
               if (data.function_call) {
                 switch (data.function_call.name) {
                   case "send_emails":
-                    alert("Emails have been sent")
+                    console.log("success");
+                    openModal();
                     break;
                 
                   default:

@@ -19,7 +19,7 @@ gemini_function_declarations = [
   # GrabBack: Send Emails
   FunctionDeclaration(
     name="send_emails",
-    description="An option the user has after requesting to show customers."
+    description="An option the user has after requesting to show customers. Will be triggered whenever the user asks or agress to send emails after showing inactive customers"
   ),
 
   # GrabBack: Calculate Total Sales per LLM call

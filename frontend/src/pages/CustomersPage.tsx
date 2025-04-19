@@ -119,9 +119,14 @@ const filterByDaysAgo: FilterFn<CustomerData> = (
 };
 // --- End Custom Filter Function ---
 
-const CustomersPage: React.FC = () => {
+interface CustomersPageProps {
+  modalOpened: boolean;
+  openModal: () => void;
+  closeModal: () => void;
+}
+
+const CustomersPage: React.FC<CustomersPageProps> = ({ modalOpened, openModal, closeModal }) => {
   // Modal State
-  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [selectedRowData, setSelectedRowData] = useState<CustomerData | null>(null);
 
   // Data Fetching State
@@ -462,7 +467,7 @@ const CustomersPage: React.FC = () => {
 
             </IconCircleDashedCheck>
             <Text ta="center">
-                Email Sent!
+                Emails Sent!
             </Text>
         </Stack>
         <Group justify="center" mt="md">

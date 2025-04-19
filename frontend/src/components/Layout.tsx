@@ -11,7 +11,7 @@ const navLinks = [
   // Add more links here
 ];
 
-function Layout() {
+function Layout({ openModal }) {
   // State for mobile navigation burger menu
   const [mobileNavOpened, { toggle: toggleMobileNav }] = useDisclosure();
   // State for the right collapsible sidebar (Aside)
@@ -92,7 +92,9 @@ function Layout() {
               <Title order={2} c="green">MEX Assistant</Title>
             </Group >
             <ChatHistoryProvider>
-              <ChatbotInterface />
+              <ChatbotInterface
+                openModal={openModal}
+              />
             </ChatHistoryProvider>
           </Box>
         )}
