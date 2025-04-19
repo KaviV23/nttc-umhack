@@ -15,12 +15,14 @@ from schemas.merchant import Token
 from schemas.request_bodies import LoginRequest, PromptRequest
 from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import show_customers_function
-from forecast import router as forecast_router
+from forecast_sales import router as forecast_router
+from forecast_qty import router as forecast_qty_router
 
 app = FastAPI()
 
 # mount our forecasting router here
 app.include_router(forecast_router)
+app.include_router(forecast_qty_router)
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
