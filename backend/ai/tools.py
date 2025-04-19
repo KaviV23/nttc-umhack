@@ -18,20 +18,20 @@ gemini_function_declarations = [
 
   # GrabBack: Send Emails
   FunctionDeclaration(
-    name="send_emails",
-    description="An option the user has after requesting to show customers. Will be triggered whenever the user asks or agress to send emails after showing inactive customers"
+    name="yes_please_send_emails",
+    description="This is a function that is executed conditionally after'show_customers' has been executed, and any agreement terms like 'yes', 'yeah', 'alright'--post-condition--will trigger this function exectuion as well."
   ),
 
   # GrabBack: Calculate Total Sales per LLM call
   FunctionDeclaration(
     name="calculate_total_sales",
-    description="Calculate total forecasted sales for a specific period between 1 and 30 days from forecast data.",
+    description="Calculate total forecasted sales for a specific period between 1 and 30 days from forecast data. You may also infer the number of days from terms referring to a period such as weeks, months, fortnights, etc.",
     parameters={
       "type": "object",
       "properties": {
         "days": {
           "type": "integer",
-          "description": "Number of days to calculate total for (must be between 1 and 30)"
+          "description": "Number of days to calculate total for (must be between 1 and 30), and you may also infer the number of days from terms referring to a period such as weeks, months, fortnights, etc.",
         }
       },
       "required": ["days"]
@@ -41,13 +41,13 @@ gemini_function_declarations = [
   # GrabBack: Get Forecasted Quantities
   FunctionDeclaration(
     name="get_forecasted_quantities",
-    description="Get forecasted quantities for each food item for a specific period between 1 and 30 days.",
+    description="Get forecasted quantities for each food item for a specific period between 1 and 30 days. You may also infer the number of days from terms referring to a period such as weeks, months, fortnights, etc.",
     parameters={
       "type": "object",
       "properties": {
         "days": {
           "type": "integer",
-          "description": "Number of days to get forecast for (must be between 1 and 30)"
+          "description": "Number of days to get forecast for (must be between 1 and 30), and you may also infer the number of days from terms referring to a period such as weeks, months, fortnights, etc."
         }
       },
       "required": ["days"]
@@ -57,13 +57,13 @@ gemini_function_declarations = [
   # GrabBack: Get Actual Quantities
   FunctionDeclaration(
     name="get_actual_quantities",
-    description="Get actual historical quantities sold for each food item for a specific period between 1 and 30 days.",
+    description="Get actual historical quantities sold for each food item for a specific period between 1 and 30 days. You may also infer the number of days from terms referring to a period such as weeks, months, fortnights, etc.",
     parameters={
       "type": "object",
       "properties": {
         "days": {
           "type": "integer",
-          "description": "Number of past days to retrieve data for (must be between 1 and 30)"
+          "description": "Number of past days to retrieve data for (must be between 1 and 30), and you may also infer the number of days from terms referring to a period such as weeks, months, fortnights, etc."
         }
       },
       "required": ["days"]
