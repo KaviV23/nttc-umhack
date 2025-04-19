@@ -1,3 +1,4 @@
+# main.py
 import os
 from fastapi import Depends, FastAPI, HTTPException
 from dotenv import load_dotenv
@@ -14,68 +15,67 @@ from schemas.merchant import Token
 from schemas.request_bodies import LoginRequest, PromptRequest
 from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import show_customers_function
+from forecast_sales import router as forecast_router
+from forecast_qty import router as forecast_qty_router
 
 app = FastAPI()
+
+# mount our forecasting router here
+app.include_router(forecast_router)
+app.include_router(forecast_qty_router)
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
-# Endpoints
-# Chatbot API
 @app.post("/api/chat")
-async def chat(reqBody: PromptRequest, merchant: Merchant = Depends(get_current_merchant)):
-
+async def chat(
+    reqBody: PromptRequest,
+    merchant: Merchant = Depends(get_current_merchant)
+):
     geminiTools = types.Tool(function_declarations=[show_customers_function])
-
-    # AI Agent Instructions
     geminiConf = types.GenerateContentConfig(
-        system_instruction=open("./ai/prompts/prompt3.txt", "r").read(),
+        system_instruction=open("./ai/prompts/prompt3.txt").read(),
         tools=[geminiTools]
     )
-
-    geminiClient = genai.Client(api_key=GEMINI_API_KEY)
-    geminiModel = "gemini-2.0-flash"
-
-    geminiResponse = geminiClient.models.generate_content(
-        model=geminiModel,
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    resp = client.models.generate_content(
+        model="gemini-2.0-flash",
         config=geminiConf,
         contents=reqBody.message
     )
-
-    if geminiResponse.candidates[0].content.parts[0].function_call:
-        function_call = geminiResponse.candidates[0].content.parts[0].function_call
+    candidate = resp.candidates[0].content.parts[0]
+    if candidate.function_call:
         return {
-            "response": "Alright, here are your customers. Let me know if you need help with anything else!",
+            "response": "Alright, here are your customers!",
             "function_call": {
-                "name": function_call.name,
-                "args": function_call.args,
+                "name": candidate.function_call.name,
+                "args": candidate.function_call.args,
             }
         }
-    else:
-        return {
-            "response": geminiResponse.text,
-        }
+    return {"response": resp.text}
 
 
-# Login API
 @app.post("/api/login", response_model=Token)
-def get_merchants(reqBody: LoginRequest, db: Session = Depends(get_db)):
-
-    merchant = db.query(Merchant).filter(Merchant.merchant_id == reqBody.merchant_id).first()
+def login(reqBody: LoginRequest, db: Session = Depends(get_db)):
+    merchant = (
+        db.query(Merchant)
+          .filter(Merchant.merchant_id == reqBody.merchant_id)
+          .first()
+    )
     if not merchant:
         raise HTTPException(status_code=404, detail="Merchant not found")
-    
-    access_token = create_access_token(data={"sub": merchant.merchant_id})
-    return {"access_token": access_token, "token_type": "bearer"}
+    token = create_access_token(data={"sub": merchant.merchant_id})
+    return {"access_token": token, "token_type": "bearer"}
 
 
 @app.get("/api/getCustomersByMerchant")
-async def chat(merchant: Merchant = Depends(get_current_merchant), db: Session = Depends(get_db)):
-
+async def get_customers(
+    merchant: Merchant = Depends(get_current_merchant),
+    db: Session = Depends(get_db)
+):
     result = db.execute(text(get_customers_sql(merchant.merchant_id)))
     rows = result.fetchall()
     cols = result.keys()
     data = [dict(zip(cols, row)) for row in rows]
-
-    return { "results": data }
+    return {"results": data}
