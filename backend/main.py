@@ -1,11 +1,6 @@
-# main.py
 import os
 from fastapi import Depends, FastAPI, HTTPException
 from dotenv import load_dotenv
-# Assuming previous import issues were resolved or these are not needed for the dict approach:
-# from google import genai
-# from google.genai import types
-# from google.genai.types import Content, Part # Removed Part
 import google.generativeai as genai
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -21,15 +16,16 @@ from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import gemini_function_declarations
 from forecasts.forecast_qty import router as forecast_qty_router, forecast_quantity, get_forecasted_quantities
 from forecasts.forecast_sales import router as forecast_sales_router, forecast_orders, calculate_total_sales
-# Correct imports from sql_extraction needed for the case block
 from sql_scripts.sql_extraction import router as sql_extraction_router, query_item_quantities, ItemQuantity, QuantitiesResponse
+from sql_scripts.sql_extract_monthly_sales import router as monthly_sales_router
 
 app = FastAPI()
 
 # mount our forecasting router here
 app.include_router(forecast_sales_router)
 app.include_router(forecast_qty_router)
-app.include_router(sql_extraction_router) # Ensure sql_extraction_router is defined via import
+app.include_router(sql_extraction_router)
+app.include_router(monthly_sales_router)
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
