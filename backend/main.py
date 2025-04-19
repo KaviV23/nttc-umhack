@@ -20,7 +20,7 @@ from sql_scripts.get_customers_sql import get_customers_sql
 from ai.tools import gemini_function_declarations
 from forecasts.forecast_qty import router as forecast_qty_router, forecast_quantity, get_forecasted_quantities
 from forecasts.forecast_sales import router as forecast_sales_router, forecast_orders, calculate_total_sales
-from sql_extraction import router as sql_extraction_router, get_actual_quantities
+from sql_scripts.sql_extraction import router as sql_extraction_router, get_actual_quantities_endpoint
 
 app = FastAPI()
 
@@ -124,7 +124,7 @@ async def chat(reqBody: PromptRequest, merchant: Merchant = Depends(get_current_
 
             case "get_actual_quantities":
                 # Get actual quantities
-                actual_data = get_actual_quantities(days=function_args["days"], merchant=merchant)
+                actual_data = get_actual_quantities_endpoint(days=function_args["days"], merchant=merchant)
                 
                 # Format the quantities into a readable string
                 quantities_text = f"Here are the actual quantities sold in the past {int(function_args['days'])} days:\n\n"

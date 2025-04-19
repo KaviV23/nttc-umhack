@@ -1,4 +1,4 @@
-import { Paper, Title, SimpleGrid, useMantineTheme, Box } from '@mantine/core';
+import { Text, Paper, Title, SimpleGrid, useMantineTheme, Box } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import {
@@ -6,9 +6,6 @@ import {
     Line,
     BarChart,
     Bar,
-    PieChart,
-    Pie,
-    Cell,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -36,15 +33,6 @@ const categorySalesData = [
     { name: 'Food 3', sales: 7200 },
     { name: 'Food 4', sales: 5500 },
     { name: 'Food 5', sales: 3100 },
-];
-
-// 3. Top Performing Merchants
-const merchantSalesData = [
-    { merchant: 'Cuisine A', sales: 9800 },
-    { merchant: 'Cuisine B', sales: 7500 },
-    { merchant: 'Cuisine C', sales: 6900 },
-    { merchant: 'Cuisine D', sales: 5200 },
-    { merchant: 'Cuisine E', sales: 4100 },
 ];
 
 interface ForecastRevenueDataList {
@@ -98,6 +86,7 @@ function DashboardPage() {
     const [forecastSalesRevenue, setForecastSalesData] = useState<ForecastRevenueData | null>(null)
     const [forecastSalesQuantity, setForecastSalesQuantity] = useState<ForecastQuantityData | null>(null)
     const [forecastSalesQuantityKeys, setForecastSalesQuantityKeys] = useState<string[]>()
+    const [itemSales, setItemSales] = useState<[]>()
 
     // Get Mantine theme colors for charts
     const getThemeColor = (colorName: string) => theme.colors[colorName]?.[6] || theme.primaryColor;
@@ -149,6 +138,37 @@ function DashboardPage() {
           })
       }
       fetchForecastQuantity();
+
+      async function fetchItemSales() {
+        const myHeaders = new Headers();
+        myHeaders.append(
+          "Authorization",
+          `bearer ${localStorage.getItem("access_token")}`
+        );
+
+        const requestOptions = {
+          method: "GET",
+          headers: myHeaders,
+        };
+
+        fetch(
+          "http://localhost:9000/api/actual_quantities?days=30",
+          requestOptions
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            const res = []
+            console.log(data.items);
+            data.items.forEach((entry: { item_name: string; total_quantity: number, total_sales: number; }) => {
+              res.push({
+                name: entry.item_name,
+                sales: entry.total_sales,
+              })
+            });
+            setItemSales(res);
+          })
+      }
+      fetchItemSales();
     }, [])
 
     return (
@@ -213,7 +233,7 @@ function DashboardPage() {
             </Title>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
-                data={categorySalesData}
+                data={itemSales}
                 margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
                 layout="vertical" // Makes bars horizontal
               >
@@ -255,43 +275,9 @@ function DashboardPage() {
           {/* Chart 3: Top Performing Merchants (Pie Chart) */}
           <Paper shadow="sm" p="md" radius="md" withBorder>
             <Title order={4} mb="md">
-              Top Cuisine Categories
+              This Month's Sales
             </Title>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={merchantSalesData}
-                  cx="50%" // Center X
-                  cy="50%" // Center Y
-                  labelLine={false}
-                  // label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} // Example label inside slice
-                  outerRadius={100} // Size of the pie
-                  fill="#8884d8"
-                  dataKey="sales"
-                  nameKey="merchant"
-                >
-                  {merchantSalesData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={pieChartColors[index % pieChartColors.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme.white,
-                    borderColor: theme.colors.gray[4],
-                    borderRadius: theme.radius.sm,
-                  }}
-                  formatter={(value: number, name: string) => [
-                    `$${value.toLocaleString()}`,
-                    name,
-                  ]}
-                />
-                <Legend align="center" verticalAlign="bottom" />{" "}
-                {/* Position legend */}
-              </PieChart>
-            </ResponsiveContainer>
+            <Text size='60px'>00/00</Text>
           </Paper>
         </SimpleGrid>
         <Title mb="md" order={2}>Forecasting</Title>
