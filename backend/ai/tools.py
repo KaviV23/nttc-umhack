@@ -16,12 +16,23 @@ gemini_function_declarations = [
     },
   ),
 
-  # GrabBack: Send Emails
-  FunctionDeclaration(
-    name="yes_please_send_emails",
-    description="This is a function that is executed conditionally after'show_customers' has been executed, and any agreement terms like 'yes', 'yeah', 'alright'--post-condition--will trigger this function exectuion as well."
-  ),
+# Replace the existing send_emails declaration with this one:
 
+# GrabBack: Send Emails
+FunctionDeclaration(
+    name="send_emails",
+    description="This function can be triggered after showing customers, often following user confirmation (e.g., 'yes', 'okay', 'send them'). It indicates whether emails should be prepared or sent.",
+    parameters= {
+        "type": "object",
+        "properties": {
+            "send": { # Changed parameter name for clarity
+                "type": "boolean",
+                "description": "Set to true if the user has confirmed and emails should proceed. Set to false if just acknowledging the possibility without confirmation.",
+            },
+        },
+        "required": ["send"] # Make the boolean flag mandatory for this function call
+    },
+),
   # GrabBack: Calculate Total Sales per LLM call
   FunctionDeclaration(
     name="calculate_total_sales",

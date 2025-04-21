@@ -1,10 +1,26 @@
-import { Text, Paper, Title, SimpleGrid, useMantineTheme, Box, Group } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import {
+    Text,
+    Paper,
+    Title,
+    SimpleGrid,
+    useMantineTheme,
+    Box,
+    Group,
+    ActionIcon, // Added
+    Tooltip,    // Added
+    Modal,      // Added
+    LoadingOverlay, // Added
+    Alert,      // Added
+    Loader,      // Added
+    Button
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks'; // Added
+import { IconInfoCircle, IconAlertCircle } from '@tabler/icons-react'; // Added
 import dayjs from 'dayjs';
-// Import customParseFormat plugin for dayjs if parsing 'YYYY-MM'
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-dayjs.extend(customParseFormat); // Extend dayjs with the plugin
+dayjs.extend(customParseFormat);
 
-import { useEffect, useState } from 'react'; // Ensure useState and useEffect are imported
 import {
     LineChart,
     Line,
@@ -13,39 +29,39 @@ import {
     XAxis,
     YAxis,
     CartesianGrid,
-    Tooltip,
+    Tooltip as RechartsTooltip, // Renamed to avoid conflict
     Legend,
-    ResponsiveContainer // Important for responsiveness!
+    ResponsiveContainer
 } from 'recharts';
 
-// --- Interfaces ---
+// --- Interfaces (Existing) ---
 
-// Interface for the data points coming from /api/monthly_sales
+// Monthly Sales
 interface ApiMonthlySalePoint {
-  month: string; // Format: YYYY-MM
+  month: string;
   total_sales: number;
 }
-
-// Interface for the whole response from /api/monthly_sales
 interface MonthlySalesApiResponse {
   merchant_id: string;
   monthly_sales: ApiMonthlySalePoint[];
 }
-
-// Interface for the data structure needed by the Monthly Sales LineChart
 interface ChartMonthlySalePoint {
-    month: string; // Format: 'MMM' (e.g., 'Jan') for display
+    month: string;
     sales: number;
 }
 
-// Interface for the Item Sales Bar Chart data
+// Item Sales Bar Chart
 interface ChartItemSalePoint {
     name: string;
     sales: number;
 }
+// API response for Item Sales
+interface ItemSalesApiResponse {
+    items: { item_name: string; total_sales: number; }[];
+    // Add other properties if the API returns more
+}
 
-
-// Revenue Forecast Interfaces
+// Revenue Forecast
 interface ForecastRevenueDataList {
   forecast_date: string;
   forecasted_revenue: number;
@@ -54,179 +70,255 @@ interface ForecastRevenueData {
   future_forecast: ForecastRevenueDataList[]
 }
 
-
-// --- UPDATED Quantity Forecast Interfaces ---
-
-// Represents one day's forecast data point in the array returned by the backend
+// Quantity Forecast
 interface ForecastQuantityDataPoint {
-  order_date: string; // Expecting 'YYYY-MM-DD' string
-  [itemNameKey: `${string}_pred`]: number; // Dynamic keys like "Pancit_Malabon_pred": 10
+  order_date: string;
+  [itemNameKey: `${string}_pred`]: number;
 }
-
-// Represents the entire API response for quantity forecast
 interface ForecastQuantityApiResponse {
   merchant_id: string;
-  forecast_period: string; // Added based on new API output
-  // The key containing the forecast data array
+  forecast_period: string;
   future_forecast_by_name: ForecastQuantityDataPoint[];
-  // Add other keys if your backend sends them (e.g., historical data)
-  // historical_evaluation?: any[];
 }
 
+// --- NEW: Interfaces for AI Insights ---
+interface InsightsRequest {
+    chart_title: string;
+    chart_data: any[]; // Keep flexible
+}
+interface InsightsResponse {
+    insight: string;
+}
+// --- END NEW ---
 
-// Colors for Pie Chart Slices (using Mantine theme colors) - Keep if used elsewhere
-const PIE_COLORS = [
-    'blue', // theme.colors.blue[6]
-    'teal', // theme.colors.teal[6]
-    'grape', // theme.colors.grape[6]
-    'orange', // theme.colors.orange[6]
-    'indigo', // theme.colors.indigo[6]
-    'red', // theme.colors.red[6]
-    'lime', // theme.colors.lime[6]
-];
+
+// Colors (Keep if used, removed PIE_COLORS as it wasn't used in the provided code)
+// const PIE_COLORS = [ ... ];
 
 // --- Dashboard Component ---
 
 function DashboardPage() {
     const theme = useMantineTheme();
-    // State for Revenue Forecast (Unchanged)
-    const [forecastSalesRevenue, setForecastSalesData] = useState<ForecastRevenueData | null>(null);
 
-    // *** UPDATE State Type for Quantity Forecast ***
-    const [forecastSalesQuantity, setForecastSalesQuantity] = useState<ForecastQuantityApiResponse | null>(null);
-    // State to hold the dynamic item name keys (e.g., "Pancit_Malabon_pred")
-    const [forecastQuantityItemKeys, setForecastQuantityItemKeys] = useState<string[]>([]); // Renamed for clarity
-
-    // State for Item Sales Bar Chart (Unchanged)
-    const [itemSales, setItemSales] = useState<ChartItemSalePoint[]>([]);
-    // State for Monthly Sales Trend Chart (Unchanged)
+    // --- Existing State ---
     const [chartMonthlySalesData, setChartMonthlySalesData] = useState<ChartMonthlySalePoint[]>([]);
-    // State for Total Sales calculation (Unchanged)
-    const [totalSales, setTotalSales] = useState<number>(0);
+    const [itemSales, setItemSales] = useState<ChartItemSalePoint[]>([]);
+    const [totalSales, setTotalSales] = useState<number>(0); // For the summary card
+    const [forecastSalesRevenue, setForecastSalesData] = useState<ForecastRevenueData | null>(null);
+    const [forecastSalesQuantity, setForecastSalesQuantity] = useState<ForecastQuantityApiResponse | null>(null);
+    const [forecastQuantityItemKeys, setForecastQuantityItemKeys] = useState<string[]>([]);
 
+    // --- NEW: State for AI Insights Modal ---
+    const [
+        insightModalOpened,
+        { open: openInsightModal, close: closeInsightModal }
+    ] = useDisclosure(false);
+    const [isInsightLoading, setIsInsightLoading] = useState(false);
+    const [insightError, setInsightError] = useState<string | null>(null);
+    const [insightContent, setInsightContent] = useState<string | null>(null);
+    const [insightChartTitle, setInsightChartTitle] = useState<string>(''); // To show correct title in modal
+    // --- END NEW ---
+
+    // --- Loading and Error States for Initial Data Fetch ---
+    const [isLoading, setIsLoading] = useState(true); // Combined loading state
+    const [fetchError, setFetchError] = useState<string | null>(null); // Combined error state
 
     const getThemeColor = (colorName: string) => theme.colors[colorName]?.[6] || theme.primaryColor;
-    // const pieChartColors = PIE_COLORS.map(colorName => getThemeColor(colorName)); // Generate if/when pie chart is used
 
 
     // --- useEffect Hook ---
     useEffect(() => {
-
-        // Function to create headers (avoids repetition)
         const createAuthHeaders = () => {
             const myHeaders = new Headers();
             const token = localStorage.getItem("access_token");
+            myHeaders.append("Content-Type", "application/json"); // Good practice
             if (token) {
                 myHeaders.append("Authorization", `Bearer ${token}`);
             } else {
-                console.warn("Access token not found in localStorage.");
+                console.warn("Access token not found.");
+                // Potentially set an error state or redirect here
             }
             return myHeaders;
         };
 
-        // Fetch Forecast Sales (Revenue)
-        async function fetchForecastSales() {
-            const requestOptions = { method: "GET", headers: createAuthHeaders() };
-            try {
-                const response = await fetch("http://localhost:9000/api/forecast_sales", requestOptions);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data: ForecastRevenueData = await response.json(); // Add type
-                setForecastSalesData(data);
-            } catch (error) {
-                console.error("Failed to fetch forecast sales:", error);
-                setForecastSalesData(null); // Reset on error
+        const fetchAllData = async () => {
+            setIsLoading(true);
+            setFetchError(null);
+            const headers = createAuthHeaders();
+            // Check if token exists before proceeding
+            if (!headers.has("Authorization")) {
+                setFetchError("Authentication token not found. Please log in.");
+                setIsLoading(false);
+                return;
             }
-        }
 
-        // Fetch Forecast Sales (Quantity) - Uses Updated Logic
-        async function fetchForecastQuantity() {
-            const requestOptions = { method: "GET", headers: createAuthHeaders() };
-             try {
-                const response = await fetch("http://localhost:9000/api/forecast_quantity", requestOptions);
-                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                // Use the updated API Response interface
-                const result: ForecastQuantityApiResponse = await response.json();
-                console.log("Fetched Forecast Quantity Data:", result);
-                setForecastSalesQuantity(result); // Store the whole response
+            const requestOptions = { method: "GET", headers: headers };
 
-                // --- Extract keys from the NEW data structure ---
-                if (result.future_forecast_by_name && result.future_forecast_by_name.length > 0) {
-                    // Get keys from the first data point, exclude 'order_date', ensure they end with '_pred'
-                    const itemKeys = Object.keys(result.future_forecast_by_name[0])
-                        .filter((key) => key !== 'order_date' && key.endsWith('_pred'));
-                    console.log("Extracted Item Keys for Quantity Forecast:", itemKeys);
-                    setForecastQuantityItemKeys(itemKeys);
+            try {
+                // Use Promise.allSettled for better error handling if one fetch fails
+                const results = await Promise.allSettled([
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/monthly_sales`, requestOptions),
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/actual_quantities?days=30`, requestOptions),
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/forecast_sales`, requestOptions),
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/forecast_quantity`, requestOptions)
+                ]);
+
+                let encounteredError = false;
+                const errors: string[] = [];
+
+                // Process Monthly Sales
+                if (results[0].status === 'fulfilled' && results[0].value.ok) {
+                    const data: MonthlySalesApiResponse = await results[0].value.json();
+                    const transformedData = data.monthly_sales.map(apiPoint => ({
+                        month: dayjs(apiPoint.month, 'YYYY-MM').format('MMM'),
+                        sales: apiPoint.total_sales
+                    }));
+                    setChartMonthlySalesData(transformedData);
                 } else {
-                    console.log("No future forecast data found for quantity.");
+                    encounteredError = true;
+                    errors.push(`Monthly Sales: ${results[0].status === 'rejected' ? results[0].reason.message : `HTTP ${results[0].value.status}`}`);
+                    setChartMonthlySalesData([]);
+                }
+
+                // Process Item Sales
+                if (results[1].status === 'fulfilled' && results[1].value.ok) {
+                    const data: ItemSalesApiResponse = await results[1].value.json();
+                    const res: ChartItemSalePoint[] = [];
+                    let sumSales = 0;
+                    if (data.items && Array.isArray(data.items)) {
+                        data.items.forEach(entry => {
+                            if (typeof entry.total_sales === 'number') {
+                                res.push({ name: entry.item_name, sales: entry.total_sales });
+                                sumSales += entry.total_sales;
+                            }
+                        });
+                    }
+                    setItemSales(res);
+                    setTotalSales(sumSales);
+                } else {
+                    encounteredError = true;
+                    errors.push(`Item Sales: ${results[1].status === 'rejected' ? results[1].reason.message : `HTTP ${results[1].value.status}`}`);
+                    setItemSales([]);
+                    setTotalSales(0);
+                }
+
+                // Process Forecast Revenue
+                if (results[2].status === 'fulfilled' && results[2].value.ok) {
+                    const data: ForecastRevenueData = await results[2].value.json();
+                    setForecastSalesData(data);
+                } else {
+                    encounteredError = true;
+                    errors.push(`Forecast Revenue: ${results[2].status === 'rejected' ? results[2].reason.message : `HTTP ${results[2].value.status}`}`);
+                    setForecastSalesData(null);
+                }
+
+                // Process Forecast Quantity
+                if (results[3].status === 'fulfilled' && results[3].value.ok) {
+                    const result: ForecastQuantityApiResponse = await results[3].value.json();
+                    setForecastSalesQuantity(result);
+                    if (result.future_forecast_by_name?.length > 0) {
+                        const itemKeys = Object.keys(result.future_forecast_by_name[0])
+                            .filter((key) => key !== 'order_date' && key.endsWith('_pred'));
+                        setForecastQuantityItemKeys(itemKeys);
+                    } else {
+                        setForecastQuantityItemKeys([]);
+                    }
+                } else {
+                    encounteredError = true;
+                    errors.push(`Forecast Quantity: ${results[3].status === 'rejected' ? results[3].reason.message : `HTTP ${results[3].value.status}`}`);
+                    setForecastSalesQuantity(null);
                     setForecastQuantityItemKeys([]);
                 }
-            } catch (error) {
-                console.error("Failed to fetch forecast quantity:", error);
+
+                if (encounteredError) {
+                    setFetchError(`Failed to load some dashboard data: ${errors.join(', ')}`);
+                }
+
+            } catch (error: any) {
+                console.error("Generic error fetching dashboard data:", error);
+                setFetchError(error.message || "An unexpected error occurred while loading dashboard data.");
+                // Reset all data states on a major failure
+                setChartMonthlySalesData([]);
+                setItemSales([]);
+                setTotalSales(0);
+                setForecastSalesData(null);
                 setForecastSalesQuantity(null);
                 setForecastQuantityItemKeys([]);
+            } finally {
+                setIsLoading(false);
             }
+        };
+
+        fetchAllData();
+    }, []); // Empty dependency array
+
+
+    // --- NEW: Handler for Generating Insights ---
+    const handleGenerateInsights = async (chartTitle: string, chartData: any) => {
+        // Basic validation: Check if data exists and is an array with items
+        if (!chartData || (Array.isArray(chartData) && chartData.length === 0)) {
+            setInsightChartTitle(chartTitle);
+            setInsightError(`No data available for "${chartTitle}" to generate insights.`);
+            setInsightContent(null);
+            setIsInsightLoading(false); // Ensure loading is false even if we don't proceed
+            openInsightModal();
+            return;
         }
 
-        // Fetch Item Sales (for Bar Chart)
-        async function fetchItemSales() {
-             const requestOptions = { method: "GET", headers: createAuthHeaders() };
-             try {
-                const response = await fetch("http://localhost:9000/api/actual_quantities?days=30", requestOptions);
-                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json(); // Define type if known, e.g., { items: ChartItemSalePoint[] }
-                const res: ChartItemSalePoint[] = [];
-                let sumSales = 0;
-                if (data.items && Array.isArray(data.items)) {
-                     data.items.forEach((entry: { item_name: string; total_sales: number; }) => {
-                         if (typeof entry.total_sales === 'number') {
-                             res.push({ name: entry.item_name, sales: entry.total_sales });
-                             sumSales += entry.total_sales;
-                         } else {
-                             console.warn(`Invalid sales data for item ${entry.item_name}:`, entry.total_sales);
-                         }
-                     });
-                }
-                setItemSales(res);
-                setTotalSales(sumSales);
-            } catch (error) {
-                console.error("Failed to fetch item sales:", error);
-                 setItemSales([]);
-                 setTotalSales(0);
+        // Reset state and open modal
+        setInsightChartTitle(chartTitle);
+        setInsightError(null);
+        setInsightContent(null);
+        setIsInsightLoading(true);
+        openInsightModal();
+
+        // Prepare request body
+        const requestBody: InsightsRequest = {
+            chart_title: chartTitle,
+            // Ensure chartData is an array, handle non-array cases if needed (though charts usually use arrays)
+            chart_data: Array.isArray(chartData) ? chartData : [chartData]
+        };
+
+        // Make API call
+        try {
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                throw new Error("Authentication token not found.");
             }
+
+            const response = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/api/generate_insights`,
+                {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `bearer ${token}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                }
+            );
+
+            if (!response.ok) {
+                let errorDetail = `Request failed with status ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorDetail = errorData.detail || errorDetail;
+                } catch { /* Ignore if response body isn't JSON */ }
+                throw new Error(`Failed to generate insights: ${errorDetail}`);
+            }
+
+            const result: InsightsResponse = await response.json();
+            setInsightContent(result.insight);
+
+        } catch (e: any) {
+            console.error(`Failed to generate insights for ${chartTitle}:`, e);
+            setInsightError(e.message || "An unexpected error occurred.");
+        } finally {
+            setIsInsightLoading(false);
         }
+    };
+    // --- END NEW ---
 
-        // Fetch Monthly Sales Trend
-        async function fetchMonthlySalesTrend() {
-            const requestOptions = { method: "GET", headers: createAuthHeaders() };
-            try {
-                const response = await fetch("http://localhost:9000/api/monthly_sales", requestOptions);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data: MonthlySalesApiResponse = await response.json();
-
-                // Transform API data for the chart
-                const transformedData: ChartMonthlySalePoint[] = data.monthly_sales.map(apiPoint => ({
-                    month: dayjs(apiPoint.month, 'YYYY-MM').format('MMM'), // Parse YYYY-MM -> format MMM
-                    sales: apiPoint.total_sales
-                }));
-
-                console.log("Fetched and transformed monthly sales:", transformedData);
-                setChartMonthlySalesData(transformedData);
-
-            } catch (error) {
-                console.error("Failed to fetch or process monthly sales trend:", error);
-                setChartMonthlySalesData([]);
-            }
-          }
-
-        // Call all fetch functions
-        fetchForecastSales();
-        fetchForecastQuantity();
-        fetchItemSales();
-        fetchMonthlySalesTrend();
-
-    }, []); // Empty dependency array ensures runs once on mount
 
     // --- RENDER ---
     return (
@@ -235,126 +327,241 @@ function DashboardPage() {
           Dashboard
         </Title>
 
-        {/* Section 1: Monthly Sales Trend (Unchanged) */}
-        <SimpleGrid cols={{ base: 1 }} spacing="xl" mb="xl">
-            <Paper shadow="sm" p="md" radius="md" withBorder>
-                <Title order={4} mb="md">Monthly Sales Trend</Title>
-                <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={chartMonthlySalesData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.gray[4]} />
-                         <XAxis dataKey="month" stroke={theme.colors.gray[7]} />
-                         <YAxis stroke={theme.colors.gray[7]} tickFormatter={(value) => `$${value.toLocaleString()}`} />
-                         <Tooltip
-                           contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
-                           formatter={(value: number) => [`$${value.toLocaleString()}`, "Sales"]}
-                         />
-                         <Legend />
-                         <Line type="monotone" dataKey="sales" name="Monthly Sales" stroke={getThemeColor(theme.primaryColor)} strokeWidth={2} activeDot={{ r: 8 }} dot={{ r: 4 }} />
-                    </LineChart>
-                </ResponsiveContainer>
-            </Paper>
-        </SimpleGrid>
+        {/* Display global loading or error */}
+        {isLoading && (
+            <Group justify="center" my="xl">
+                <Loader />
+                <Text>Loading dashboard data...</Text>
+            </Group>
+        )}
+        {fetchError && !isLoading && (
+            <Alert title="Data Loading Error" color="red" icon={<IconAlertCircle />} mb="xl" withCloseButton onClose={() => setFetchError(null)}>
+                {fetchError}
+            </Alert>
+        )}
 
-        {/* Section 2: Item Sales and Recent Sales */}
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" mb="xl">
-             <Paper shadow="sm" p="md" radius="md" withBorder>
-               <Title order={4} mb="md">Top Item Sales (Last 30 Days)</Title>
-                 <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={itemSales} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.colors.gray[4]} />
-                        <XAxis type="number" stroke={theme.colors.gray[7]} tickFormatter={(value) => `$${value.toLocaleString()}`} />
-                        <YAxis dataKey="name" type="category" width={100} interval={0} stroke={theme.colors.gray[7]} />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
-                            formatter={(value: number) => [`$${value.toLocaleString()}`, "Sales"]}
-                         />
-                        {/* <Legend /> */}
-                        <Bar dataKey="sales" name="Total Sales" fill={getThemeColor("green")} radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
-             </Paper>
-             {/* --- RESTORED THIS PART --- */}
-             <Paper shadow="sm" p="md" radius="md" withBorder>
-                {/* Title might need adjusting if 'totalSales' isn't strictly "This Month" */}
-                <Title order={4} mb="md">Last 30 Days' Sales</Title>
-                 <Group justify="center" h="80%">
-                     {/* Using the structure with the slash and target */}
-                     <Text size='40px' ta="center" fw="bold" c="dark">
-                         <span style={{ color: totalSales > 60000 ? "#40c057" : "orange" }}> {/* Original color logic */}
-                             RM {totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                         </span>/ {/* The slash */}
-                         <br />60000.00 {/* The target value */}
-                     </Text>
-                 </Group>
-             </Paper>
-             {/* --- END OF RESTORED PART --- */}
-        </SimpleGrid>
+        {!isLoading && !fetchError && (
+            <>
+                {/* Section 1: Monthly Sales Trend */}
+                <SimpleGrid cols={{ base: 1 }} spacing="xl" mb="xl">
+                    <Paper shadow="sm" p="md" radius="md" withBorder>
+                        <Group justify="space-between" align="center" mb="md">
+                            <Title order={4}>Monthly Sales Trend</Title>
+                            <Tooltip label="Get AI Insights" withArrow position="left">
+                                <ActionIcon
+                                    variant="subtle"
+                                    onClick={() => handleGenerateInsights("Monthly Sales Trend", chartMonthlySalesData)}
+                                    disabled={isInsightLoading || !chartMonthlySalesData || chartMonthlySalesData.length === 0}
+                                    loading={isInsightLoading}
+                                    aria-label="Generate insights for Monthly Sales Trend"
+                                >
+                                    <IconInfoCircle size={20} />
+                                </ActionIcon>
+                            </Tooltip>
+                        </Group>
+                        {chartMonthlySalesData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={chartMonthlySalesData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.gray[4]} />
+                                    <XAxis dataKey="month" stroke={theme.colors.gray[7]} />
+                                    <YAxis stroke={theme.colors.gray[7]} tickFormatter={(value) => `$${value.toLocaleString()}`} />
+                                    <RechartsTooltip
+                                        contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
+                                        formatter={(value: number) => [`$${value.toLocaleString()}`, "Sales"]}
+                                    />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="sales" name="Monthly Sales" stroke={getThemeColor(theme.primaryColor)} strokeWidth={2} activeDot={{ r: 8 }} dot={{ r: 4 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                         ) : (
+                            <Text c="dimmed" ta="center" style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No monthly sales data available.</Text>
+                         )}
+                    </Paper>
+                </SimpleGrid>
 
-        {/* Section 3: Forecasting */}
-        <Title mb="md" order={2}>Forecasting</Title>
-        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" mb="xl">
-          {/* Sales Forecast (Revenue) - Unchanged */}
-          <Box>
-             <Paper shadow="sm" p="md" radius="md" withBorder>
-                 <Title order={4} mb="md">Sales Forecast (Revenue)</Title>
-                  <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={forecastSalesRevenue?.future_forecast} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.gray[4]} />
-                         <XAxis dataKey="forecast_date" tickFormatter={(dateStr) => dayjs(dateStr).isValid() ? dayjs(dateStr).format('YYYY-MM-DD') : ''} stroke={theme.colors.gray[7]} />
-                         <YAxis stroke={theme.colors.gray[7]} tickFormatter={(value) => `$${value.toLocaleString()}`} />
-                         <Tooltip
-                             contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
-                             formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, "Forecasted Revenue"]}
-                             labelFormatter={(label) => dayjs(label).isValid() ? dayjs(label).format("YYYY-MM-DD") : ''}
-                         />
-                         <Legend />
-                         <Line type="monotone" dataKey="forecasted_revenue" name="Revenue" stroke={getThemeColor(theme.primaryColor)} strokeWidth={2} activeDot={{ r: 8 }} dot={{ r: 4 }} />
-                      </LineChart>
-                 </ResponsiveContainer>
-             </Paper>
-          </Box>
+                {/* Section 2: Item Sales and Total Sales Summary */}
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" mb="xl">
+                    <Paper shadow="sm" p="md" radius="md" withBorder>
+                        <Group justify="space-between" align="center" mb="md">
+                             <Title order={4}>Top Item Sales (Last 30 Days)</Title>
+                             <Tooltip label="Get AI Insights" withArrow position="left">
+                                 <ActionIcon
+                                     variant="subtle"
+                                     onClick={() => handleGenerateInsights("Top Item Sales (Last 30 Days)", itemSales)}
+                                     disabled={isInsightLoading || !itemSales || itemSales.length === 0}
+                                     loading={isInsightLoading}
+                                     aria-label="Generate insights for Top Item Sales"
+                                 >
+                                     <IconInfoCircle size={20} />
+                                 </ActionIcon>
+                             </Tooltip>
+                         </Group>
+                         {itemSales.length > 0 ? (
+                             <ResponsiveContainer width="100%" height={300}>
+                                 <BarChart data={itemSales} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.colors.gray[4]} />
+                                     <XAxis type="number" stroke={theme.colors.gray[7]} tickFormatter={(value) => `$${value.toLocaleString()}`} />
+                                     <YAxis dataKey="name" type="category" width={100} interval={0} stroke={theme.colors.gray[7]} />
+                                     <RechartsTooltip
+                                         contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
+                                         formatter={(value: number) => [`$${value.toLocaleString()}`, "Sales"]}
+                                     />
+                                     <Bar dataKey="sales" name="Total Sales" fill={getThemeColor("green")} radius={[0, 4, 4, 0]} />
+                                 </BarChart>
+                             </ResponsiveContainer>
+                         ) : (
+                            <Text c="dimmed" ta="center" style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No item sales data available for the last 30 days.</Text>
+                         )}
+                    </Paper>
+                    {/* Total Sales Card - Generally no insight button here as it's a single number */}
+                    <Paper shadow="sm" p="md" radius="md" withBorder>
+                        <Title order={4} mb="md">Last 30 Days' Sales Summary</Title>
+                        <Group justify="center" h="80%" align="center">
+                            <Text size='40px' ta="center" fw="bold" c="dark">
+                                <span style={{ color: totalSales > 60000 ? getThemeColor('green') : getThemeColor('orange') }}>
+                                    RM {totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                                {/* You might want the target to be dynamic or configurable */}
+                                <Text size="sm" c="dimmed">/ RM 60,000.00 target</Text>
+                            </Text>
+                        </Group>
+                    </Paper>
+                </SimpleGrid>
 
-          {/* Sales Forecast (Quantity) - Updated */}
-          <Box>
-             <Paper shadow="sm" p="md" radius="md" withBorder>
-               <Title order={4} mb="md">Sales Forecast (Quantity)</Title>
-               <ResponsiveContainer width="100%" height={300}>
-                 {/* Use the NEW data key from the state */}
-                 <LineChart data={forecastSalesQuantity?.future_forecast_by_name} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.gray[4]} />
-                     {/* XAxis uses 'order_date' */}
-                     <XAxis
-                        dataKey="order_date"
-                        tickFormatter={(date) => dayjs(date).isValid() ? dayjs(date).format("MM-DD") : ''} // Shorter date format
-                        stroke={theme.colors.gray[7]}
-                     />
-                     <YAxis allowDecimals={false} stroke={theme.colors.gray[7]} /> {/* No decimals for quantity */}
-                     <Tooltip
-                        labelFormatter={(date) => dayjs(date).isValid() ? dayjs(date).format("YYYY-MM-DD") : ''} // Full date
-                        contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
-                        // Format tooltip payload names and values
-                        formatter={(value: number, name: string) => [`${value} units`, name.replace('_pred', '')]} // Cleaned name + units
-                     />
-                     <Legend />
-                     {/* Map over the extracted item name keys */}
-                     {forecastQuantityItemKeys?.map((itemKey, index) => (
-                         <Line
-                             key={itemKey} // Use the unique item key (e.g., "Pancit_Malabon_pred")
-                             type="monotone"
-                             dataKey={itemKey} // This MUST match the key in the data objects
-                             // Set the 'name' prop for a cleaner Legend display
-                             name={itemKey.replace('_pred', '')} // Remove '_pred' for Legend
-                             stroke={["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#ff00ff", "#00ff00", "#00e0ff"][index % 7]} // Cycle colors
-                             dot={false} // Simpler look for forecasts
-                             activeDot={{ r: 6 }}
-                             strokeWidth={2}
-                         />
-                     ))}
-                 </LineChart>
-               </ResponsiveContainer>
-             </Paper>
-          </Box>
-        </SimpleGrid>
+                {/* Section 3: Forecasting */}
+                <Title mb="md" order={2}>Forecasting</Title>
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" mb="xl">
+                    {/* Sales Forecast (Revenue) */}
+                    <Paper shadow="sm" p="md" radius="md" withBorder>
+                         <Group justify="space-between" align="center" mb="md">
+                              <Title order={4}>Sales Forecast (Revenue)</Title>
+                              <Tooltip label="Get AI Insights" withArrow position="left">
+                                  <ActionIcon
+                                      variant="subtle"
+                                      onClick={() => handleGenerateInsights("Sales Forecast (Revenue)", forecastSalesRevenue?.future_forecast)}
+                                      // Disable if loading, no data object, or empty forecast array
+                                      disabled={isInsightLoading || !forecastSalesRevenue?.future_forecast || forecastSalesRevenue.future_forecast.length === 0}
+                                      loading={isInsightLoading}
+                                      aria-label="Generate insights for Sales Forecast (Revenue)"
+                                  >
+                                      <IconInfoCircle size={20} />
+                                  </ActionIcon>
+                              </Tooltip>
+                          </Group>
+                          {forecastSalesRevenue?.future_forecast && forecastSalesRevenue.future_forecast.length > 0 ? (
+                             <ResponsiveContainer width="100%" height={300}>
+                                 <LineChart data={forecastSalesRevenue.future_forecast} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.gray[4]} />
+                                     <XAxis dataKey="forecast_date" tickFormatter={(dateStr) => dayjs(dateStr).isValid() ? dayjs(dateStr).format('MM-DD') : ''} stroke={theme.colors.gray[7]} />
+                                     <YAxis stroke={theme.colors.gray[7]} tickFormatter={(value) => `$${value.toLocaleString()}`} />
+                                     <RechartsTooltip
+                                         contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
+                                         formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, "Forecasted Revenue"]}
+                                         labelFormatter={(label) => dayjs(label).isValid() ? dayjs(label).format("YYYY-MM-DD") : ''}
+                                     />
+                                     <Legend />
+                                     <Line type="monotone" dataKey="forecasted_revenue" name="Revenue" stroke={getThemeColor(theme.primaryColor)} strokeWidth={2} activeDot={{ r: 8 }} dot={{ r: 4 }} />
+                                 </LineChart>
+                             </ResponsiveContainer>
+                          ) : (
+                             <Text c="dimmed" ta="center" style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No revenue forecast data available.</Text>
+                          )}
+                    </Paper>
+
+                    {/* Sales Forecast (Quantity) */}
+                    <Paper shadow="sm" p="md" radius="md" withBorder>
+                        <Group justify="space-between" align="center" mb="md">
+                             <Title order={4}>Sales Forecast (Quantity)</Title>
+                             <Tooltip label="Get AI Insights" withArrow position="left">
+                                 <ActionIcon
+                                     variant="subtle"
+                                     onClick={() => handleGenerateInsights("Sales Forecast (Quantity)", forecastSalesQuantity?.future_forecast_by_name)}
+                                     // Disable if loading, no data object, or empty forecast array
+                                     disabled={isInsightLoading || !forecastSalesQuantity?.future_forecast_by_name || forecastSalesQuantity.future_forecast_by_name.length === 0}
+                                     loading={isInsightLoading}
+                                     aria-label="Generate insights for Sales Forecast (Quantity)"
+                                 >
+                                     <IconInfoCircle size={20} />
+                                 </ActionIcon>
+                             </Tooltip>
+                         </Group>
+                         {forecastSalesQuantity?.future_forecast_by_name && forecastSalesQuantity.future_forecast_by_name.length > 0 && forecastQuantityItemKeys.length > 0 ? (
+                             <ResponsiveContainer width="100%" height={300}>
+                                 <LineChart data={forecastSalesQuantity.future_forecast_by_name} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.gray[4]} />
+                                     <XAxis dataKey="order_date" tickFormatter={(date) => dayjs(date).isValid() ? dayjs(date).format("MM-DD") : ''} stroke={theme.colors.gray[7]} />
+                                     <YAxis allowDecimals={false} stroke={theme.colors.gray[7]} />
+                                     <RechartsTooltip
+                                         labelFormatter={(date) => dayjs(date).isValid() ? dayjs(date).format("YYYY-MM-DD") : ''}
+                                         contentStyle={{ backgroundColor: theme.white, borderColor: theme.colors.gray[4], borderRadius: theme.radius.sm }}
+                                         formatter={(value: number, name: string) => [`${Math.round(value)} units`, name.replace('_pred', '')]} // Round units
+                                     />
+                                     <Legend />
+                                     {forecastQuantityItemKeys.map((itemKey, index) => (
+                                         <Line
+                                             key={itemKey}
+                                             type="monotone"
+                                             dataKey={itemKey}
+                                             name={itemKey.replace('_pred', '')}
+                                             stroke={["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#ff00ff", "#00ff00", "#00e0ff"][index % 7]}
+                                             dot={false}
+                                             activeDot={{ r: 6 }}
+                                             strokeWidth={2}
+                                         />
+                                     ))}
+                                 </LineChart>
+                             </ResponsiveContainer>
+                         ) : (
+                             <Text c="dimmed" ta="center" style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No quantity forecast data available.</Text>
+                         )}
+                    </Paper>
+                </SimpleGrid>
+            </>
+        )}
+
+        {/* --- NEW: AI Insights Modal --- */}
+        <Modal
+            opened={insightModalOpened}
+            onClose={closeInsightModal}
+            title={`AI Insights: ${insightChartTitle}`} // Dynamic title
+            centered
+            size="lg"
+        >
+            <Box pos="relative" mih={150}>
+                <LoadingOverlay
+                    visible={isInsightLoading}
+                    zIndex={1000}
+                    overlayProps={{ radius: "sm", blur: 2 }}
+                    loaderProps={{ children: <Loader /> }}
+                />
+                {insightError && (
+                    <Alert title="Insight Error" color="red" icon={<IconAlertCircle />} withCloseButton onClose={() => setInsightError(null)}>
+                        {insightError}
+                    </Alert>
+                )}
+                {!isInsightLoading && !insightError && insightContent && (
+                    // Use pre-wrap to respect newlines from the backend
+                    <Text style={{ whiteSpace: 'pre-wrap' }}>
+                        {insightContent}
+                    </Text>
+                )}
+                {/* Optional: Message if loaded successfully but no content */}
+                {!isInsightLoading && !insightError && !insightContent && (
+                    <Text c="dimmed" ta="center">No insights were generated for this data.</Text>
+                )}
+                {/* Message when the modal is opened due to no data */}
+                 {!isInsightLoading && insightError?.startsWith('No data available') && !insightContent && (
+                     <Text c="dimmed" ta="center">{insightError}</Text>
+                 )}
+            </Box>
+            <Group justify="flex-end" mt="md">
+                <Button variant="default" onClick={closeInsightModal}>
+                    Close
+                </Button>
+            </Group>
+        </Modal>
+        {/* --- END NEW --- */}
+
       </div>
     );
 }

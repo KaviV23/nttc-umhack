@@ -88,7 +88,7 @@ function ChatbotInterface({openModal}) {
               addMessage(botMessage);
               if (data.function_call) {
                 switch (data.function_call.name) {
-                  case "yes_please_send_emails":
+                  case "send_emails":
                     console.log("success");
                     openModal();
                     break;
