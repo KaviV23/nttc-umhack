@@ -251,21 +251,21 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ modalOpened, openModal, c
         enableSorting: false,
         enableColumnFilter: false,
         cell: ({ row }) => (
-          // <Button
-          //   variant="outline"
-          //   size="xs"
-          //   onClick={() => {
-          //     setSelectedRowData(row.original);
-          //     openModal();
-          //   }}
-          //   disabled={isLoading}
-          // >
-          //   Generate Email
-          // </Button>
-          <Checkbox 
-            mx="auto"
-            checked={true}
-          />
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => {
+              // setSelectedRowData(row.original);
+              openModal();
+            }}
+            disabled={isLoading}
+          >
+            Generate Email
+          </Button>
+          // <Checkbox 
+          //   mx="auto"
+          //   checked={true}
+          // />
         ),
       },
     ],

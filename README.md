@@ -3,7 +3,6 @@
 </p>
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/frontend-react%20%7C%20mantine-blue?style=for-the-badge" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/backend-fastapi%20%7C%20ollama-green?style=for-the-badge" /></a>
   <a href="#"><img src="https://img.shields.io/badge/storage-postgresql%20%7C%20csv-yellow?style=for-the-badge" /></a>
   <a href="#"><img src="https://img.shields.io/badge/infra-docker%20%7C%20nginx-lightgrey?style=for-the-badge" /></a>
 </p>
@@ -18,7 +17,7 @@ This repository contains our project submission for the University of Malaya Hac
 **Key Resources:**
 
 *   🎨 **Prototype:** [Figma Prototype](https://www.figma.com/proto/SRxrtm9e8qbYJe3jPzHSmM/UMHackathon?node-id=21-610&p=f&t=2kfCQp9856B8CqSh-0&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=21%3A610)
-*   📄 **Documentation:** [Google Docs](https://docs.google.com/document/d/1mhMB6jfrt9OWpvGafP0qIJ3PaWjJl8cj9_oNQASEMHc/edit?usp=sharing) | [About The Idea](./docs/ABOUT_THE_IDEA.md) | [Presentation Slides](https://github.com/KaviV23/nttc-umhack/blob/main/docs/Nth%20times%20the%20charm.pdf)
+*   📄 **Documentation:** [Google Docs](https://docs.google.com/document/d/1mhMB6jfrt9OWpvGafP0qIJ3PaWjJl8cj9_oNQASEMHc/edit?usp=sharing) | [About The Idea](./docs/ABOUT_THE_IDEA.md) | [Presentation Slides](https://github.com/KaviV23/nttc-umhack/blob/main/docs/N%E2%80%99th%20time%E2%80%99s%20the%20charm_Slides.pdf)
 
 ---
 
@@ -61,18 +60,6 @@ Navigate to the backend directory (if applicable) and install dependencies using
 uv pip install -r requirements.txt
 ```
 
-**Install Ollama:**
-
-Download and install Ollama for your operating system from the official website:
-[https://ollama.com](https://ollama.com)
-
-Once installed, pull the required LLM model (we use `llama3`):
-```bash
-ollama pull llama3
-```
-
-Ensure the Ollama application/server is running in the background.
-
 **Run the FastAPI Server:**
 
 ```bash
@@ -88,44 +75,28 @@ fastapi dev .\main.py --port 9000
 
 ### Back-End
 - **FastAPI** for API logic and routing
-- **Ollama** for local LLM integration
-
+- **Gemini Flash** for cloud-based API LLM integration
+- **ipynb** for data analytics
+- **polars** for blazingly fast dataframes
+  
 ### Storage
 - **PostgreSQL** for persistent relational data
 - **CSV files** for lightweight tabular data ingestion/export
 
 ### Infrastructure
 - **Docker** to containerize services
-- **Nginx** as the reverse proxy/load balancer
 
 ---
 
-## 📹 In Action
+## 📹 Full Featured Walkthrough
 
 <div align="center">
 
-  <p><h3>🎬 0. AI Intent Detection</h3>
+  <p><h3GrabEX MEX Assistant</h3>
   "It all begins with understanding your goals. Our AI reads your intent—whether you're aiming for sales, discounts, or retention—and guides you to the right tools instantly."
-  <video controls muted src="https://github.com/user-attachments/assets/8533fa88-f86e-4a34-a511-c37c18852387"></video></p>
-
-  <p><h3>🎬 1. Generate Sales Forecast</h3>
-  "Kick off your business strategy by generating AI-powered sales forecasts using synthetic data and supervised learning models. See tomorrow’s demand—today."
-  <video controls muted src="https://github.com/user-attachments/assets/774d4483-ca46-4a12-bfe9-9096f57db36b"></video></p>
-
-  <p><h3>🎬 2. Plan Food Staging</h3>
-  "Turn those forecasts into action. Use predictive insights to plan food staging, tap into warehousing APIs, and boost your delivery range and customer reach."
-  <video controls muted src="https://github.com/user-attachments/assets/820e6f4c-615d-48a6-b58a-4bd3359150fd"></video></p>
-
-  <p><h3>🎬 3. Identify Inactive Customers</h3>
-  "Discover who hasn’t come back. Dive into backend data to find customers who’ve stopped reordering—and start planning your win-back strategy."
-  <video controls muted src="https://github.com/user-attachments/assets/6aba3aff-71a8-4e5c-b6d8-945f7fbb9ed8"></video></p>
-
-  <p><h3>🎬 4. Draft Retention Messages</h3>
-  "Don’t just find them—bring them back. Automatically craft tailored messages based on past order behavior to re-engage loyal customers and spark new sales."
-  <video controls muted src="https://github.com/user-attachments/assets/e6426e47-00e1-48a4-97ba-6fb852a151ed"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/1e70b7b2-44ce-4a32-8eed-9db75be05453"></video></p>
 
 </div>
-
 ---
 
 ## 📚 Documentation & Tutorials
@@ -149,8 +120,6 @@ uv pip install -r requirements.txt
 ```bash
 uv venv --recreate
 ```
-**Check Ollama Status**
-(Ensure the Ollama application/server is running)
 
 ---
 
@@ -166,5 +135,4 @@ Make sure to follow our [contributing guidelines](./CONTRIBUTING.md) and test us
 
 Thanks to the maintainers and toolmakers across the Python and JS ecosystem. Inspired by:
 - [FastAPI](https://fastapi.tiangolo.com/)
-- [Ollama](https://ollama.com)
 - [Mantine](https://mantine.dev)
