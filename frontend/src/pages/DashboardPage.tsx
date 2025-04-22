@@ -534,25 +534,37 @@ function DashboardPage() {
                     overlayProps={{ radius: "sm", blur: 2 }}
                     loaderProps={{ children: <Loader /> }}
                 />
-                {insightError && (
-                    <Alert title="Insight Error" color="red" icon={<IconAlertCircle />} withCloseButton onClose={() => setInsightError(null)}>
-                        {insightError}
-                    </Alert>
-                )}
-                {!isInsightLoading && !insightError && insightContent && (
-                    // Use pre-wrap to respect newlines from the backend
-                    <Text style={{ whiteSpace: 'pre-wrap' }}>
-                        {insightContent}
-                    </Text>
-                )}
-                {/* Optional: Message if loaded successfully but no content */}
-                {!isInsightLoading && !insightError && !insightContent && (
-                    <Text c="dimmed" ta="center">No insights were generated for this data.</Text>
-                )}
-                {/* Message when the modal is opened due to no data */}
-                 {!isInsightLoading && insightError?.startsWith('No data available') && !insightContent && (
-                     <Text c="dimmed" ta="center">{insightError}</Text>
-                 )}
+                <Paper
+                    withBorder
+                    p="sm"
+                    mb="md"
+                    style={{
+                        minHeight: "60px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    {insightError && (
+                        <Alert title="Insight Error" color="red" icon={<IconAlertCircle />} withCloseButton onClose={() => setInsightError(null)}>
+                            {insightError}
+                        </Alert>
+                    )}
+                    {!isInsightLoading && !insightError && insightContent && (
+                        // Use pre-wrap to respect newlines from the backend
+                        <Text style={{ whiteSpace: 'pre-wrap' }}>
+                            {insightContent}
+                        </Text>
+                    )}
+                    {/* Optional: Message if loaded successfully but no content */}
+                    {!isInsightLoading && !insightError && !insightContent && (
+                        <Text c="dimmed" ta="center">No insights were generated for this data.</Text>
+                    )}
+                    {/* Message when the modal is opened due to no data */}
+                        {!isInsightLoading && insightError?.startsWith('No data available') && !insightContent && (
+                            <Text c="dimmed" ta="center">{insightError}</Text>
+                        )}
+                </Paper>
             </Box>
             <Group justify="flex-end" mt="md">
                 <Button variant="default" onClick={closeInsightModal}>
