@@ -94,7 +94,7 @@ fastapi dev .\main.py --port 9000
 
   <p><h3GrabEX MEX Assistant</h3>
   "It all begins with understanding your goals. Our AI reads your intent—whether you're aiming for sales, discounts, or retention—and guides you to the right tools instantly."
-  <video controls muted src="https://github.com/user-attachments/assets/9574bc22-2417-4ec8-b476-8083d304d511"></video></p>
+  <video controls muted src="https://github.com/user-attachments/assets/1e70b7b2-44ce-4a32-8eed-9db75be05453"></video></p>
 
 </div>
 ---
