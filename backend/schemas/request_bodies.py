@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal
+from typing import List, Literal, Dict, Any
 from pydantic import BaseModel
 
 class HistoryMessage(BaseModel):
@@ -13,6 +13,6 @@ class LoginRequest(BaseModel):
     merchant_id: str
     password: str
 
-class InsightsRequest(BaseModel):
+class InsightRequest(BaseModel):
     chart_title: str
     chart_data: List[Dict[str, Any]]
