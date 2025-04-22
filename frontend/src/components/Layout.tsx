@@ -1,5 +1,5 @@
-import { Outlet, NavLink as RouterNavLink } from 'react-router-dom';
-import { AppShell, Burger, Group, NavLink, Text, Button, Title, Box, useMantineTheme } from '@mantine/core';
+import { Outlet, NavLink as RouterNavLink, useNavigate } from 'react-router-dom';
+import { AppShell, Burger, Group, NavLink, Text, Button, Title, Box, useMantineTheme, Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks'; // Hook for toggle state
 import ChatbotInterface from './ChatbotInterface';
 import { ChatHistoryProvider } from '../contexts/ChatHistoryContext';
@@ -17,6 +17,12 @@ function Layout({ openModal }) {
   // State for the right collapsible sidebar (Aside)
   const [asideOpened, { toggle: toggleAside }] = useDisclosure(false); // Default to closed
   const theme = useMantineTheme();
+
+  const navigate = useNavigate();
+  const logout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/auth/login");
+  }
 
   // Generate NavLink components for the left sidebar
   const mainLinks = navLinks.map((link) => (
@@ -73,10 +79,19 @@ function Layout({ openModal }) {
 
       {/* Left Sidebar (Navbar) */}
       <AppShell.Navbar p="md" bg="#eaeff2">
-        <Text fw={500} mb="sm">
-          Navigation
-        </Text>
-        {mainLinks}
+        <Stack justify="space-between" h="100%">
+          <Box>
+            <Text fw={500} mb="sm">
+              Navigation
+            </Text>
+            {mainLinks}
+          </Box>
+          <Box>
+            <Button w="100%" variant="outline" color="red" onClick={logout}>
+              Logout
+            </Button>
+          </Box>
+        </Stack>
       </AppShell.Navbar>
 
       {/* Right Sidebar (Aside) */}

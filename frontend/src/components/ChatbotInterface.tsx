@@ -62,7 +62,7 @@ function ChatbotInterface({openModal}) {
         setSuggestedActions([]);
 
         try {
-            const response = await fetch("http://localhost:9000/api/chat", {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/chat`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
