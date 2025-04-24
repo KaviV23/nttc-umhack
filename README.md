@@ -7,7 +7,7 @@
   <a href="#"><img src="https://img.shields.io/badge/infra-docker%20%7C%20nginx-lightgrey?style=for-the-badge" /></a>
 </p>
 <p align="center">
-  Run LLM apps locally using FastAPI and Ollama. Designed for hackathon speed, production stability, and AI-first development.
+  Ran with GeminiAPI and FastAPI, for backend logic routing. Designed for hackathon speed, production stability, and AI-first development.
 </p>
 
 # 🏆 Submission for UM Hackathon 2024 🏆
