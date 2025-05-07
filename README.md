@@ -97,6 +97,7 @@ fastapi dev .\main.py --port 9000
   <video controls muted src="https://github.com/user-attachments/assets/1e70b7b2-44ce-4a32-8eed-9db75be05453"></video></p>
 
 </div>
+
 ---
 
 ## 📚 Documentation & Tutorials
@@ -127,7 +128,7 @@ uv venv --recreate
 
 We welcome issues, discussions, and pull requests. Please open a discussion before submitting a large PR.
 
-Make sure to follow our [contributing guidelines](./CONTRIBUTING.md) and test using the `minimal_run.sh` script.
+Make sure to follow our [contributing guidelines](./CONTRIBUTING.md)
 
 ---
 
