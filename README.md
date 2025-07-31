@@ -126,7 +126,7 @@ uv venv --recreate
 
 ## 🙌 Contributing
 
-We welcome issues, discussions, and pull requests. Please open a discussion before submitting a large PR.
+We welcome issues, discussions, and pull requests. Please open a discussion before submitting a large PR
 
 Make sure to follow our [contributing guidelines](./CONTRIBUTING.md)
 
